@@ -2,6 +2,7 @@
 <html lang="en">
 
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -15,6 +16,7 @@
         rel="stylesheet"
         href="/static/css/style.css"
     >
+
 </head>
 
 <body>
@@ -25,7 +27,9 @@
             AI FILM PRODUCTION INTELLIGENCE
         </p>
 
-        <h1>ScenePilot</h1>
+        <h1>
+            ScenePilot
+        </h1>
 
         <p class="description">
             Turn a screenplay into a
@@ -39,13 +43,27 @@
             </h2>
 
             <p>
-                Upload a screenplay and let
-                ScenePilot analyze it.
+                Upload a screenplay PDF to begin.
             </p>
 
-            <button>
-                Upload Screenplay
-            </button>
+            <form
+                action="/analysis/upload"
+                method="post"
+                enctype="multipart/form-data"
+            >
+
+                <input
+                    type="file"
+                    name="file"
+                    accept=".pdf"
+                    required
+                >
+
+                <button type="submit">
+                    Analyze Screenplay
+                </button>
+
+            </form>
 
         </div>
 
