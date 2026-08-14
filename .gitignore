@@ -20,6 +20,8 @@ out/
 .nuxt/
 *.egg-info/
 __pycache__/
+*.py[cod]
+uploads/
 
 # Logs
 logs

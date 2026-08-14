@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
 
     <meta
@@ -10,65 +8,384 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>ScenePilot</title>
+    <title>ScenePilot — Production Intelligence</title>
 
     <link
         rel="stylesheet"
-        href="/static/css/style.css"
+        href="{{ url_for('static', path='/css/style.css') }}?v=3"
     >
-
 </head>
 
 <body>
 
-    <main class="container">
+    <div class="page">
 
-        <p class="eyebrow">
-            AI FILM PRODUCTION INTELLIGENCE
-        </p>
+        <!-- NAVIGATION -->
 
-        <h1>
-            ScenePilot
-        </h1>
+        <header class="nav">
 
-        <p class="description">
-            Turn a screenplay into a
-            research-backed production plan.
-        </p>
-
-        <div class="card">
-
-            <h2>
-                Start a production analysis
-            </h2>
-
-            <p>
-                Upload a screenplay PDF to begin.
-            </p>
-
-            <form
-                action="/analysis/upload"
-                method="post"
-                enctype="multipart/form-data"
+            <a
+                href="/"
+                class="logo"
             >
+                <span class="logo-mark">S</span>
+                <span>ScenePilot</span>
+            </a>
 
-                <input
-                    type="file"
-                    name="file"
-                    accept=".pdf"
-                    required
+            <div class="nav-status">
+                <span class="status-dot"></span>
+                AI PRODUCTION TOOL
+            </div>
+
+        </header>
+
+
+        <!-- MAIN -->
+
+        <main>
+
+            <!-- HERO -->
+
+            <section class="hero">
+
+                <p class="hero-label">
+                    SCREENPLAY → PRODUCTION
+                </p>
+
+                <h1>
+                    Know what your
+                    <em>script</em>
+                    requires.
+                </h1>
+
+                <p class="hero-description">
+                    ScenePilot analyzes your screenplay,
+                    researches real-world locations, and
+                    turns every scene into actionable
+                    production intelligence.
+                </p>
+
+            </section>
+
+
+            <!-- UPLOAD -->
+
+            <section class="analysis-card">
+
+                <div class="card-top">
+
+                    <div>
+
+                        <p class="card-label">
+                            NEW ANALYSIS
+                        </p>
+
+                        <h2>
+                            Upload your screenplay
+                        </h2>
+
+                    </div>
+
+                    <span class="pdf-badge">
+                        PDF
+                    </span>
+
+                </div>
+
+
+                <form
+                    action="/analysis/upload"
+                    method="post"
+                    enctype="multipart/form-data"
+                    class="upload-form"
                 >
 
-                <button type="submit">
-                    Analyze Screenplay
-                </button>
+                    <label
+                        for="screenplay"
+                        class="dropzone"
+                        id="dropzone"
+                    >
 
-            </form>
+                        <input
+                            id="screenplay"
+                            type="file"
+                            name="file"
+                            accept=".pdf,application/pdf"
+                            required
+                        >
 
-        </div>
+                        <div class="upload-icon">
+                            ↑
+                        </div>
 
-    </main>
+                        <div class="upload-content">
+
+                            <strong>
+                                Choose a screenplay
+                            </strong>
+
+                            <span>
+                                PDF files only
+                            </span>
+
+                        </div>
+
+                        <span class="browse">
+                            Browse
+                        </span>
+
+                    </label>
+
+
+                    <div
+                        class="selected-file"
+                        id="selected-file"
+                    >
+                        <span class="selected-icon">
+                            PDF
+                        </span>
+
+                        <span
+                            id="file-name"
+                            class="file-name"
+                        >
+                            No file selected
+                        </span>
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="analyze-button"
+                    >
+
+                        <span>
+                            Analyze screenplay
+                        </span>
+
+                        <span class="arrow">
+                            →
+                        </span>
+
+                    </button>
+
+                </form>
+
+            </section>
+
+
+            <!-- PIPELINE -->
+
+            <section class="pipeline">
+
+                <div class="pipeline-item">
+
+                    <span class="pipeline-number">
+                        01
+                    </span>
+
+                    <div>
+                        <strong>
+                            Analyze
+                        </strong>
+
+                        <span>
+                            Scenes & requirements
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-item">
+
+                    <span class="pipeline-number">
+                        02
+                    </span>
+
+                    <div>
+                        <strong>
+                            Research
+                        </strong>
+
+                        <span>
+                            Real-world information
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="pipeline-line"></div>
+
+
+                <div class="pipeline-item">
+
+                    <span class="pipeline-number">
+                        03
+                    </span>
+
+                    <div>
+                        <strong>
+                            Plan
+                        </strong>
+
+                        <span>
+                            Production intelligence
+                        </span>
+                    </div>
+
+                </div>
+
+            </section>
+
+        </main>
+
+
+        <!-- FOOTER -->
+
+        <footer class="footer">
+
+            <span>
+                Powered by Gemini
+            </span>
+
+            <span class="footer-separator">
+                /
+            </span>
+
+            <span>
+                Research powered by Parallel
+            </span>
+
+        </footer>
+
+    </div>
+
+
+    <script>
+
+        const input =
+            document.getElementById("screenplay");
+
+        const fileName =
+            document.getElementById("file-name");
+
+        const dropzone =
+            document.getElementById("dropzone");
+
+        const selectedFile =
+            document.getElementById("selected-file");
+
+
+        input.addEventListener(
+            "change",
+            function () {
+
+                if (this.files.length > 0) {
+
+                    fileName.textContent =
+                        this.files[0].name;
+
+                    selectedFile.classList.add(
+                        "visible"
+                    );
+
+                    dropzone.classList.add(
+                        "has-file"
+                    );
+
+                } else {
+
+                    fileName.textContent =
+                        "No file selected";
+
+                    selectedFile.classList.remove(
+                        "visible"
+                    );
+
+                    dropzone.classList.remove(
+                        "has-file"
+                    );
+                }
+            }
+        );
+
+
+        [
+            "dragenter",
+            "dragover"
+        ].forEach(
+            function (eventName) {
+
+                dropzone.addEventListener(
+                    eventName,
+                    function (event) {
+
+                        event.preventDefault();
+
+                        dropzone.classList.add(
+                            "dragging"
+                        );
+                    }
+                );
+            }
+        );
+
+
+        [
+            "dragleave",
+            "drop"
+        ].forEach(
+            function (eventName) {
+
+                dropzone.addEventListener(
+                    eventName,
+                    function () {
+
+                        dropzone.classList.remove(
+                            "dragging"
+                        );
+                    }
+                );
+            }
+        );
+
+
+        dropzone.addEventListener(
+            "drop",
+            function (event) {
+
+                event.preventDefault();
+
+                const files =
+                    event.dataTransfer.files;
+
+                if (
+                    files.length > 0 &&
+                    files[0].type === "application/pdf"
+                ) {
+
+                    input.files = files;
+
+                    fileName.textContent =
+                        files[0].name;
+
+                    selectedFile.classList.add(
+                        "visible"
+                    );
+
+                    dropzone.classList.add(
+                        "has-file"
+                    );
+                }
+            }
+        );
+
+    </script>
 
 </body>
-
 </html>

@@ -2,13 +2,13 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 
 from app.routes.analysis import router as analysis_router
 from app.routes.pages import router as pages_router
 
 
-BASE_DIR = Path(__file__).resolve().parent
+APP_DIR = Path(__file__).resolve().parent
+STATIC_DIR = APP_DIR / "static"
 
 
 app = FastAPI(
@@ -21,14 +21,9 @@ app = FastAPI(
 app.mount(
     "/static",
     StaticFiles(
-        directory=BASE_DIR / "static"
+        directory=STATIC_DIR,
     ),
     name="static",
-)
-
-
-templates = Jinja2Templates(
-    directory=BASE_DIR / "templates"
 )
 
 
