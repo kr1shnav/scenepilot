@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 
@@ -11,8 +12,7 @@ class GeminiService:
     """
     ScenePilot Gemini API service.
 
-    Uses the Gemini Developer API through Google AI Studio,
-    not Vertex AI.
+    Uses the Gemini Developer API through Google AI Studio.
     """
 
     def __init__(self):
@@ -25,12 +25,86 @@ class GeminiService:
 
         self.model = os.getenv(
             "GEMINI_MODEL",
-            "gemini-2.5-flash",
+            "gemini-3.5-flash",
         )
 
         self.client = genai.Client(
             api_key=api_key
         )
+
+    async def _generate(
+        self,
+        prompt: str,
+        retries: int = 4,
+    ):
+        """
+        Generate Gemini content with automatic retry
+        for temporary service errors.
+
+        Retry delays:
+        2s → 4s → 8s → 16s
+        """
+
+        last_error = None
+
+        for attempt in range(retries):
+
+            try:
+
+                response = await (
+                    self.client
+                    .aio
+                    .models
+                    .generate_content(
+                        model=self.model,
+                        contents=prompt,
+                    )
+                )
+
+                return response
+
+            except Exception as exc:
+
+                last_error = exc
+
+                error_text = str(
+                    exc
+                ).upper()
+
+                retryable = any(
+                    code in error_text
+                    for code in [
+                        "503",
+                        "UNAVAILABLE",
+                        "429",
+                        "RESOURCE_EXHAUSTED",
+                        "500",
+                        "INTERNAL",
+                    ]
+                )
+
+                if not retryable:
+                    raise
+
+                if attempt >= retries - 1:
+                    raise
+
+                delay = 2 ** (
+                    attempt + 1
+                )
+
+                print(
+                    f"Gemini temporary error. "
+                    f"Retrying in {delay}s "
+                    f"(attempt "
+                    f"{attempt + 1}/{retries})..."
+                )
+
+                await asyncio.sleep(
+                    delay
+                )
+
+        raise last_error
 
     async def analyze_screenplay(
         self,
@@ -115,9 +189,8 @@ SCREENPLAY:
 {screenplay_text}
 """
 
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=prompt,
+        response = await self._generate(
+            prompt
         )
 
         text = response.text or ""
@@ -127,26 +200,43 @@ SCREENPLAY:
                 "Gemini returned an empty response."
             )
 
-        text = self._clean_json(text)
+        text = self._clean_json(
+            text
+        )
 
         try:
-            data = json.loads(text)
+
+            data = json.loads(
+                text
+            )
 
         except json.JSONDecodeError as exc:
+
             raise RuntimeError(
                 "Gemini returned invalid JSON."
             ) from exc
 
-        if not isinstance(data, dict):
+        if not isinstance(
+            data,
+            dict,
+        ):
+
             raise RuntimeError(
                 "Gemini response must be a JSON object."
             )
 
-        scenes = data.get("scenes")
+        scenes = data.get(
+            "scenes"
+        )
 
-        if not isinstance(scenes, list):
+        if not isinstance(
+            scenes,
+            list,
+        ):
+
             raise RuntimeError(
-                "Gemini response does not contain a valid scenes list."
+                "Gemini response does not contain "
+                "a valid scenes list."
             )
 
         return data
@@ -241,9 +331,9 @@ Keep the output concise and practical.
 Return JSON only.
 """
 
-        response = await self.client.aio.models.generate_content(
-            model=self.model,
-            contents=prompt,
+        response = await self._generate(
+            prompt,
+            retries=5,
         )
 
         text = response.text or ""
@@ -253,17 +343,27 @@ Return JSON only.
                 "Gemini synthesis returned an empty response."
             )
 
-        text = self._clean_json(text)
+        text = self._clean_json(
+            text
+        )
 
         try:
-            result = json.loads(text)
+
+            result = json.loads(
+                text
+            )
 
         except json.JSONDecodeError as exc:
+
             raise RuntimeError(
                 "Gemini synthesis returned invalid JSON."
             ) from exc
 
-        if not isinstance(result, dict):
+        if not isinstance(
+            result,
+            dict,
+        ):
+
             raise RuntimeError(
                 "Gemini synthesis must return a JSON object."
             )
@@ -271,20 +371,31 @@ Return JSON only.
         return result
 
     @staticmethod
-    def _clean_json(text: str) -> str:
+    def _clean_json(
+        text: str,
+    ) -> str:
         """
         Remove accidental Markdown code fences.
         """
 
         text = text.strip()
 
-        if text.startswith("```json"):
+        if text.startswith(
+            "```json"
+        ):
+
             text = text[7:]
 
-        elif text.startswith("```"):
+        elif text.startswith(
+            "```"
+        ):
+
             text = text[3:]
 
-        if text.endswith("```"):
+        if text.endswith(
+            "```"
+        ):
+
             text = text[:-3]
 
         return text.strip()
