@@ -10,9 +10,14 @@ load_dotenv()
 
 class GeminiService:
     """
-    ScenePilot Gemini API service.
+    ScenePilot Gemini service.
 
-    Uses the Gemini Developer API through Google AI Studio.
+    IMPORTANT:
+    This service intentionally performs only ONE Gemini
+    request per screenplay analysis.
+
+    Production synthesis is handled locally after
+    Parallel research to reduce Gemini quota usage.
     """
 
     def __init__(self):
@@ -35,14 +40,16 @@ class GeminiService:
     async def _generate(
         self,
         prompt: str,
-        retries: int = 4,
+        retries: int = 2,
     ):
         """
-        Generate Gemini content with automatic retry
-        for temporary service errors.
+        Generate Gemini content.
 
-        Retry delays:
-        2s → 4s → 8s → 16s
+        IMPORTANT:
+        429 quota errors are NOT retried.
+
+        Retrying a daily quota error wastes time and
+        does not increase the available quota.
         """
 
         last_error = None
@@ -50,8 +57,7 @@ class GeminiService:
         for attempt in range(retries):
 
             try:
-
-                response = await (
+                return await (
                     self.client
                     .aio
                     .models
@@ -61,23 +67,24 @@ class GeminiService:
                     )
                 )
 
-                return response
-
             except Exception as exc:
 
                 last_error = exc
+                error_text = str(exc).upper()
 
-                error_text = str(
-                    exc
-                ).upper()
+                # Never retry quota exhaustion.
+                if (
+                    "429" in error_text
+                    or "RESOURCE_EXHAUSTED" in error_text
+                    or "QUOTA" in error_text
+                ):
+                    raise
 
                 retryable = any(
                     code in error_text
                     for code in [
                         "503",
                         "UNAVAILABLE",
-                        "429",
-                        "RESOURCE_EXHAUSTED",
                         "500",
                         "INTERNAL",
                     ]
@@ -89,20 +96,14 @@ class GeminiService:
                 if attempt >= retries - 1:
                     raise
 
-                delay = 2 ** (
-                    attempt + 1
-                )
+                delay = 2 ** (attempt + 1)
 
                 print(
                     f"Gemini temporary error. "
-                    f"Retrying in {delay}s "
-                    f"(attempt "
-                    f"{attempt + 1}/{retries})..."
+                    f"Retrying in {delay}s..."
                 )
 
-                await asyncio.sleep(
-                    delay
-                )
+                await asyncio.sleep(delay)
 
         raise last_error
 
@@ -111,20 +112,23 @@ class GeminiService:
         screenplay_text: str,
     ) -> dict:
         """
-        Analyze screenplay and identify scenes.
+        ONE Gemini request.
+
+        Extract all scenes and determine which scenes
+        should be researched by Parallel.
         """
 
         prompt = f"""
 You are the Script Analyst Agent for ScenePilot.
 
-ScenePilot is an AI film pre-production intelligence
-system that converts screenplays into production
-intelligence.
+ScenePilot converts screenplays into practical
+film pre-production intelligence.
 
-Analyze the screenplay and identify every individual
-scene.
+Analyze the screenplay below.
 
-For each scene extract:
+Identify EVERY individual scene.
+
+For each scene return:
 
 - scene_number
 - heading
@@ -136,13 +140,10 @@ For each scene extract:
 - needs_research
 - research_query
 
-Set needs_research=true when external web research
-would materially help production planning.
+Set needs_research=true ONLY when external research
+would materially help a film production team.
 
-Set needs_research=false when external research would
-not meaningfully help.
-
-Research-worthy examples include:
+Research-worthy examples:
 
 - Real-world locations
 - Railway stations
@@ -152,36 +153,47 @@ Research-worthy examples include:
 - Landmarks
 - National parks
 - Cities
-- Historical places
-- Specific geographical locations
+- Historical locations
+- Geographical locations
 - Real events
 - Specialized environments
+- Places with filming restrictions
+- Places where weather/access/safety matters
+
+For ordinary fictional interiors such as:
+"SMALL APARTMENT"
+do not request external research unless the
+screenplay provides a specific real location.
+
+Be concise.
+
+Do NOT invent facts.
 
 Return ONLY valid JSON.
 
-Use this structure:
+Use exactly:
 
 {{
     "scenes": [
         {{
             "scene_number": 1,
-            "heading": "EXT. GUWAHATI RAILWAY STATION - NIGHT",
-            "location": "Guwahati Railway Station",
+            "heading": "EXT. LOCATION - NIGHT",
+            "location": "Location",
             "interior_exterior": "EXT",
             "time_of_day": "NIGHT",
-            "summary": "A character waits on the platform.",
+            "summary": "Short scene summary.",
             "production_requirements": [
-                "Railway station",
-                "Night lighting",
-                "Background crowd"
+                "Requirement 1",
+                "Requirement 2"
             ],
             "needs_research": true,
-            "research_query": "Research Guwahati Railway Station for film production planning, including location context, environment, access considerations and useful visual details."
+            "research_query": "Specific research objective for Parallel."
         }}
     ]
 }}
 
-Do not add markdown.
+Do not use Markdown.
+Do not use ```json.
 Do not add explanations.
 
 SCREENPLAY:
@@ -190,7 +202,8 @@ SCREENPLAY:
 """
 
         response = await self._generate(
-            prompt
+            prompt,
+            retries=2,
         )
 
         text = response.text or ""
@@ -200,40 +213,24 @@ SCREENPLAY:
                 "Gemini returned an empty response."
             )
 
-        text = self._clean_json(
-            text
-        )
+        text = self._clean_json(text)
 
         try:
-
-            data = json.loads(
-                text
-            )
+            data = json.loads(text)
 
         except json.JSONDecodeError as exc:
-
             raise RuntimeError(
                 "Gemini returned invalid JSON."
             ) from exc
 
-        if not isinstance(
-            data,
-            dict,
-        ):
-
+        if not isinstance(data, dict):
             raise RuntimeError(
                 "Gemini response must be a JSON object."
             )
 
-        scenes = data.get(
-            "scenes"
-        )
+        scenes = data.get("scenes")
 
-        if not isinstance(
-            scenes,
-            list,
-        ):
-
+        if not isinstance(scenes, list):
             raise RuntimeError(
                 "Gemini response does not contain "
                 "a valid scenes list."
@@ -241,161 +238,21 @@ SCREENPLAY:
 
         return data
 
-    async def synthesize_production_intelligence(
-        self,
-        scenes: list[dict],
-        research: list[dict],
-    ) -> dict:
-        """
-        Combine screenplay analysis with Parallel research.
-        """
-
-        scenes_text = json.dumps(
-            scenes,
-            indent=2,
-            ensure_ascii=False,
-        )
-
-        research_text = json.dumps(
-            research,
-            indent=2,
-            ensure_ascii=False,
-        )
-
-        prompt = f"""
-You are the Production Intelligence Agent for ScenePilot.
-
-Combine:
-
-1. SCREENPLAY ANALYSIS
-2. REAL-WORLD RESEARCH FROM PARALLEL
-
-Your job is to produce actionable film
-pre-production intelligence.
-
-Do not invent facts.
-
-Only use facts supported by the screenplay
-or the provided Parallel research.
-
-Preserve source URLs.
-
-SCREENPLAY ANALYSIS:
-
-{scenes_text}
-
-PARALLEL RESEARCH:
-
-{research_text}
-
-Return ONLY valid JSON.
-
-Use exactly this structure:
-
-{{
-    "production_summary": {{
-        "total_scenes": 0,
-        "researched_scenes": 0,
-        "locations": [],
-        "major_requirements": [],
-        "key_considerations": []
-    }},
-    "scenes": [
-        {{
-            "scene_number": 1,
-            "heading": "",
-            "location": "",
-            "summary": "",
-            "production_requirements": [],
-            "research_findings": [],
-            "production_considerations": [],
-            "sources": []
-        }}
-    ]
-}}
-
-For every researched scene:
-
-research_findings:
-List the useful facts discovered through Parallel.
-
-production_considerations:
-Explain what those findings mean for the
-film production team.
-
-sources:
-Preserve useful source titles and URLs.
-
-Keep the output concise and practical.
-
-Return JSON only.
-"""
-
-        response = await self._generate(
-            prompt,
-            retries=5,
-        )
-
-        text = response.text or ""
-
-        if not text:
-            raise RuntimeError(
-                "Gemini synthesis returned an empty response."
-            )
-
-        text = self._clean_json(
-            text
-        )
-
-        try:
-
-            result = json.loads(
-                text
-            )
-
-        except json.JSONDecodeError as exc:
-
-            raise RuntimeError(
-                "Gemini synthesis returned invalid JSON."
-            ) from exc
-
-        if not isinstance(
-            result,
-            dict,
-        ):
-
-            raise RuntimeError(
-                "Gemini synthesis must return a JSON object."
-            )
-
-        return result
-
     @staticmethod
-    def _clean_json(
-        text: str,
-    ) -> str:
+    def _clean_json(text: str) -> str:
         """
         Remove accidental Markdown code fences.
         """
 
         text = text.strip()
 
-        if text.startswith(
-            "```json"
-        ):
-
+        if text.startswith("```json"):
             text = text[7:]
 
-        elif text.startswith(
-            "```"
-        ):
-
+        elif text.startswith("```"):
             text = text[3:]
 
-        if text.endswith(
-            "```"
-        ):
-
+        if text.endswith("```"):
             text = text[:-3]
 
         return text.strip()

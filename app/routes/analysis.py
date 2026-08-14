@@ -7,10 +7,8 @@ from fastapi import (
     APIRouter,
     File,
     HTTPException,
-    Request,
     UploadFile,
 )
-from fastapi.templating import Jinja2Templates
 
 from app.services.gemini import GeminiService
 from app.services.parallel import ParallelService
@@ -19,10 +17,8 @@ from app.services.screenplay import extract_text_from_pdf
 
 router = APIRouter()
 
-TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
-templates = Jinja2Templates(directory=TEMPLATES_DIR)
-
 UPLOAD_DIR = Path("uploads")
+
 UPLOAD_DIR.mkdir(
     parents=True,
     exist_ok=True,
@@ -35,10 +31,6 @@ parallel_service = ParallelService()
 def _select_research_scenes(
     scenes: list[dict],
 ) -> list[dict]:
-    """
-    Select only scenes that genuinely benefit
-    from external research.
-    """
 
     max_scenes = int(
         os.getenv(
@@ -53,9 +45,6 @@ def _select_research_scenes(
         if scene.get("needs_research") is True
     ]
 
-    # Fallback:
-    # If Gemini didn't mark any scene for research,
-    # use the first scene containing a location.
     if not selected:
 
         for scene in scenes:
@@ -77,10 +66,6 @@ def _select_research_scenes(
 async def _research_scene(
     scene: dict,
 ) -> dict:
-    """
-    Run one blocking Parallel SDK request
-    without blocking the FastAPI event loop.
-    """
 
     try:
 
@@ -117,25 +102,184 @@ async def _research_scene(
         }
 
 
+def _build_production_intelligence(
+    scenes: list[dict],
+    research_results: list[dict],
+) -> dict:
+    """
+    Build the final production intelligence locally.
+
+    This replaces the second Gemini call and therefore
+    saves one Gemini request per screenplay.
+    """
+
+    research_by_scene = {
+        item.get("scene_number"): item.get(
+            "research",
+            {},
+        )
+        for item in research_results
+    }
+
+    locations = []
+    major_requirements = []
+    key_considerations = []
+
+    output_scenes = []
+
+    for scene in scenes:
+
+        scene_number = scene.get(
+            "scene_number"
+        )
+
+        location = scene.get(
+            "location",
+            "",
+        )
+
+        if location:
+            if location not in locations:
+                locations.append(location)
+
+        requirements = scene.get(
+            "production_requirements",
+            [],
+        )
+
+        for requirement in requirements:
+
+            if requirement not in major_requirements:
+                major_requirements.append(
+                    requirement
+                )
+
+        research = research_by_scene.get(
+            scene_number,
+            {},
+        )
+
+        research_content = research.get(
+            "content",
+            "",
+        )
+
+        sources = research.get(
+            "sources",
+            [],
+        )
+
+        research_findings = []
+
+        if research_content:
+
+            # Parallel returns researched content as text.
+            research_findings.append(
+                research_content
+            )
+
+        production_considerations = []
+
+        if research_content:
+
+            production_considerations.append(
+                "Review the Parallel research findings "
+                "and verify location-specific permissions, "
+                "access, safety, timing, and logistics "
+                "before production."
+            )
+
+        if sources:
+
+            for source in sources:
+
+                url = source.get("url")
+                title = source.get(
+                    "title",
+                    "Source",
+                )
+
+                if url:
+
+                    # Keep only useful source fields.
+                    source["title"] = title
+                    source["url"] = url
+
+        output_scenes.append(
+            {
+                "scene_number": scene_number,
+                "heading": scene.get(
+                    "heading",
+                    "",
+                ),
+                "location": location,
+                "summary": scene.get(
+                    "summary",
+                    "",
+                ),
+                "production_requirements": (
+                    requirements
+                ),
+                "research_findings": (
+                    research_findings
+                ),
+                "production_considerations": (
+                    production_considerations
+                ),
+                "sources": sources,
+            }
+        )
+
+    researched_count = sum(
+        1
+        for item in research_results
+        if item.get("research", {}).get(
+            "status"
+        ) == "completed"
+    )
+
+    if researched_count:
+
+        key_considerations.append(
+            "Real-world location research was "
+            "performed through Parallel. Verify "
+            "permissions, access, safety, weather, "
+            "and production restrictions before filming."
+        )
+
+    return {
+        "production_summary": {
+            "total_scenes": len(scenes),
+            "researched_scenes": researched_count,
+            "locations": locations,
+            "major_requirements": major_requirements,
+            "key_considerations": key_considerations,
+        },
+        "scenes": output_scenes,
+    }
+
+
 @router.post("/upload")
 async def upload_screenplay(
-    request: Request,
     file: UploadFile = File(...),
 ):
     """
-    Complete ScenePilot pipeline:
+    ScenePilot production pipeline.
+
+    IMPORTANT:
 
     PDF
       ↓
-    Gemini screenplay analysis
+    Gemini — ONE request
       ↓
-    Research scene selection
+    Parallel — research selected scenes
       ↓
-    Parallel concurrent research
+    Local production intelligence assembly
       ↓
-    Gemini production synthesis
-      ↓
-    Final production intelligence
+    Final response
+
+    This intentionally avoids a second Gemini
+    synthesis request.
     """
 
     # =========================================================
@@ -176,9 +320,7 @@ async def upload_screenplay(
             detail="The uploaded file is empty.",
         )
 
-    file_path.write_bytes(
-        contents
-    )
+    file_path.write_bytes(contents)
 
     # =========================================================
     # 3. EXTRACT SCREENPLAY TEXT
@@ -204,11 +346,13 @@ async def upload_screenplay(
 
         raise HTTPException(
             status_code=400,
-            detail="Could not extract text from the PDF.",
+            detail=(
+                "Could not extract text from the PDF."
+            ),
         )
 
     # =========================================================
-    # 4. GEMINI — SCREENPLAY ANALYSIS
+    # 4. GEMINI — ONE REQUEST
     # =========================================================
 
     try:
@@ -221,6 +365,26 @@ async def upload_screenplay(
         )
 
     except Exception as exc:
+
+        error_text = str(exc)
+
+        if (
+            "429" in error_text
+            or "RESOURCE_EXHAUSTED" in error_text.upper()
+            or "QUOTA" in error_text.upper()
+        ):
+
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini quota exhausted. "
+                    "ScenePilot uses one Gemini request "
+                    "per screenplay. "
+                    "Please wait for the quota reset or "
+                    "switch GEMINI_MODEL to a model with "
+                    "available quota."
+                ),
+            ) from exc
 
         raise HTTPException(
             status_code=502,
@@ -249,7 +413,7 @@ async def upload_screenplay(
         )
 
     # =========================================================
-    # 5. SELECT SCENES FOR PARALLEL RESEARCH
+    # 5. SELECT RESEARCH SCENES
     # =========================================================
 
     research_scenes = (
@@ -259,23 +423,7 @@ async def upload_screenplay(
     )
 
     # =========================================================
-    # 6. PARALLEL — CONCURRENT RESEARCH
-    # =========================================================
-    #
-    # BEFORE:
-    #
-    # Scene 1 → wait
-    # Scene 2 → wait
-    # Scene 3 → wait
-    #
-    # NOW:
-    #
-    # Scene 1 ─────┐
-    # Scene 2 ─────┼──→ all complete
-    # Scene 3 ─────┘
-    #
-    # This reduces total waiting time when multiple
-    # scenes need research.
+    # 6. PARALLEL RESEARCH
     # =========================================================
 
     if research_scenes:
@@ -292,45 +440,42 @@ async def upload_screenplay(
         research_results = []
 
     # =========================================================
-    # 7. GEMINI — PRODUCTION INTELLIGENCE SYNTHESIS
+    # 7. LOCAL PRODUCTION INTELLIGENCE
     # =========================================================
 
-    try:
-
-        production_intelligence = await (
-            gemini_service
-            .synthesize_production_intelligence(
-                scenes=scenes,
-                research=list(
-                    research_results
-                ),
-            )
-        )
-
-    except Exception as exc:
-
-        raise HTTPException(
-            status_code=502,
-            detail=(
-                "Production synthesis failed: "
-                f"{exc}"
+    production_intelligence = (
+        _build_production_intelligence(
+            scenes=scenes,
+            research_results=list(
+                research_results
             ),
-        ) from exc
+        )
+    )
 
     # =========================================================
     # 8. FINAL RESPONSE
     # =========================================================
 
-    return templates.TemplateResponse(
-        request=request,
-        name="results.html",
-        context={
-            "status": "success",
-            "filename": file.filename,
-            "file_id": file_id,
-            "text_length": len(screenplay_text),
-            "scene_count": len(scenes),
-            "researched_scene_count": len(research_results),
-            "production_intelligence": production_intelligence,
-        },
-    )
+    return {
+        "status": "success",
+
+        "filename": file.filename,
+
+        "file_id": file_id,
+
+        "text_length": len(
+            screenplay_text
+        ),
+
+        "scene_count": len(
+            scenes
+        ),
+
+        "researched_scene_count": len(
+            research_results
+        ),
+
+        "production_intelligence": (
+            production_intelligence
+        ),
+    }
