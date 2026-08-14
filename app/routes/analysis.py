@@ -7,8 +7,10 @@ from fastapi import (
     APIRouter,
     File,
     HTTPException,
+    Request,
     UploadFile,
 )
+from fastapi.templating import Jinja2Templates
 
 from app.services.gemini import GeminiService
 from app.services.parallel import ParallelService
@@ -16,6 +18,9 @@ from app.services.screenplay import extract_text_from_pdf
 
 
 router = APIRouter()
+
+TEMPLATES_DIR = Path(__file__).resolve().parents[1] / "templates"
+templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(
@@ -114,6 +119,7 @@ async def _research_scene(
 
 @router.post("/upload")
 async def upload_screenplay(
+    request: Request,
     file: UploadFile = File(...),
 ):
     """
@@ -315,26 +321,16 @@ async def upload_screenplay(
     # 8. FINAL RESPONSE
     # =========================================================
 
-    return {
-        "status": "success",
-
-        "filename": file.filename,
-
-        "file_id": file_id,
-
-        "text_length": len(
-            screenplay_text
-        ),
-
-        "scene_count": len(
-            scenes
-        ),
-
-        "researched_scene_count": len(
-            research_results
-        ),
-
-        "production_intelligence": (
-            production_intelligence
-        ),
-    }
+    return templates.TemplateResponse(
+        request=request,
+        name="results.html",
+        context={
+            "status": "success",
+            "filename": file.filename,
+            "file_id": file_id,
+            "text_length": len(screenplay_text),
+            "scene_count": len(scenes),
+            "researched_scene_count": len(research_results),
+            "production_intelligence": production_intelligence,
+        },
+    )

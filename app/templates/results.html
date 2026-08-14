@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScenePilot — Production Intelligence</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/results.css') }}?v=1">
+</head>
+<body>
+    {% set intelligence = production_intelligence | default({}, true) %}
+    {% set summary = intelligence.get('production_summary', {}) %}
+    {% set result_scenes = intelligence.get('scenes', []) %}
+    {% set locations = summary.get('locations', []) %}
+    {% set requirements = summary.get('major_requirements', []) %}
+    {% set considerations = summary.get('key_considerations', []) %}
+
+    <div class="results-page">
+        <header class="results-nav">
+            <a class="results-logo" href="/" aria-label="ScenePilot home"><span class="logo-mark">S</span><span>ScenePilot</span></a>
+            <span class="nav-status"><span class="status-dot"></span>PRODUCTION INTELLIGENCE</span>
+        </header>
+
+        <main>
+            <section class="result-hero">
+                <div>
+                    <p class="eyebrow">ANALYSIS COMPLETE</p>
+                    <h1>{{ filename }}</h1>
+                    <p>Research-backed production intelligence<br>generated from your screenplay.</p>
+                </div>
+                <a class="new-analysis" href="/">New analysis <span aria-hidden="true">↗</span></a>
+            </section>
+
+            <section class="stats-grid" aria-label="Analysis summary">
+                <article class="stat-card"><span>SCENES</span><strong>{{ scene_count }}</strong></article>
+                <article class="stat-card"><span>RESEARCHED</span><strong>{{ researched_scene_count }}</strong></article>
+                <article class="stat-card"><span>LOCATIONS</span><strong>{{ locations | length }}</strong></article>
+                <article class="stat-card"><span>REQUIREMENTS</span><strong>{{ requirements | length }}</strong></article>
+            </section>
+
+            <section class="overview-grid">
+                <article class="panel">
+                    <p class="section-index">01 Locations</p>
+                    {% if locations %}<ol class="locations-list">{% for location in locations %}<li><span>{{ '%02d' | format(loop.index) }}</span>{{ location }}</li>{% endfor %}</ol>
+                    {% else %}<p class="empty-state">No production locations were identified.</p>{% endif %}
+                </article>
+                <article class="panel">
+                    <p class="section-index">02 Major requirements</p>
+                    {% if requirements %}<div class="tag-list">{% for requirement in requirements %}<span>{{ requirement }}</span>{% endfor %}</div>
+                    {% else %}<p class="empty-state">No major requirements were identified.</p>{% endif %}
+                </article>
+            </section>
+
+            <section class="warning-panel">
+                <p class="section-index">03 Key production considerations</p>
+                <div class="warning-heading"><span aria-hidden="true">!</span><p>Permission / safety / weather considerations</p></div>
+                {% if considerations %}<ul class="arrow-list">{% for consideration in considerations %}<li>{{ consideration }}</li>{% endfor %}</ul>
+                {% else %}<p class="empty-state">No additional production considerations were returned.</p>{% endif %}
+            </section>
+
+            <section class="scenes-section">
+                <div class="section-heading"><div><p class="section-index">04 Scene intelligence</p><h2>Scene-by-scene production plan</h2></div><span class="parallel-status"><span class="status-dot"></span>Research powered by Parallel</span></div>
+                {% for scene in result_scenes %}
+                {% set research = scene.get('research_findings', []) %}
+                {% set scene_requirements = scene.get('production_requirements', []) %}
+                {% set scene_considerations = scene.get('production_considerations', []) %}
+                {% set sources = scene.get('sources', []) %}
+                <article class="scene-card">
+                    <header class="scene-header"><p>SCENE {{ '%02d' | format(scene.get('scene_number', loop.index)) }}</p><h3>{{ scene.get('heading', 'Untitled scene') }}</h3><span>{{ scene.get('location', 'Location not specified') }}</span></header>
+                    {% if scene.get('summary') %}<p class="scene-summary">{{ scene.get('summary') }}</p>{% endif %}
+                    <div class="scene-columns">
+                        <section><h4>Production requirements</h4>{% if scene_requirements %}<ul>{% for item in scene_requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No requirements returned.</p>{% endif %}</section>
+                        <section class="research-panel"><div class="research-label">{% if research %}RESEARCHED{% else %}NO EXTERNAL RESEARCH{% endif %}</div><h4>Parallel research</h4>{% if research %}<ul>{% for finding in research %}<li>{{ finding }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No external research returned for this scene.</p>{% endif %}</section>
+                    </div>
+                    <section class="production-strip"><h4>Production considerations</h4>{% if scene_considerations %}<ul>{% for item in scene_considerations %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No additional considerations returned.</p>{% endif %}</section>
+                    {% if sources %}<details class="sources"><summary>Sources <span>{{ sources | length }} reference{{ '' if sources | length == 1 else 's' }} +</span></summary><ul>{% for source in sources %}{% if source.get('url') %}<li><a href="{{ source.get('url') }}" target="_blank" rel="noopener noreferrer">{{ source.get('title') or source.get('url') }} <span aria-hidden="true">↗</span></a></li>{% endif %}{% endfor %}</ul></details>{% endif %}
+                </article>
+                {% else %}<p class="empty-state">No scene intelligence was returned.</p>{% endfor %}
+            </section>
+
+            <section class="method-panel"><p class="section-index">05 How ScenePilot works</p><ol><li><span>01</span>Screenplay</li><li><span>02</span>Gemini analysis</li><li><span>03</span>Parallel research</li><li><span>04</span>Production plan</li></ol></section>
+        </main>
+
+        <footer class="results-footer"><span class="footer-logo">ScenePilot</span><span>Gemini · Parallel · Production Research</span><span>File ID {{ file_id }}</span></footer>
+    </div>
+</body>
+</html>
