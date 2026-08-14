@@ -8,17 +8,23 @@ load_dotenv()
 
 
 class ParallelService:
-    """Research screenplay scenes with the Parallel API."""
+    """
+    ScenePilot Parallel research service.
+    """
 
     def __init__(self) -> None:
-        api_key = os.getenv("PARALLEL_API_KEY")
+        api_key = os.getenv(
+            "PARALLEL_API_KEY"
+        )
 
         if not api_key:
             raise RuntimeError(
                 "PARALLEL_API_KEY is not configured."
             )
 
-        self.client = Parallel(api_key=api_key)
+        self.client = Parallel(
+            api_key=api_key
+        )
 
         self.processor = os.getenv(
             "PARALLEL_PROCESSOR",
@@ -29,9 +35,6 @@ class ParallelService:
         self,
         scene: dict[str, Any],
     ) -> dict[str, Any]:
-        """
-        Research one screenplay scene using Parallel.
-        """
 
         heading = scene.get(
             "heading",
@@ -62,10 +65,7 @@ class ParallelService:
 You are the web research specialist for ScenePilot,
 an AI film pre-production intelligence system.
 
-Research the following screenplay scene for a filmmaker.
-
-Use reliable current web sources.
-Do not invent facts.
+Research this screenplay scene for a filmmaker.
 
 SCENE HEADING:
 {heading}
@@ -82,26 +82,29 @@ PRODUCTION REQUIREMENTS:
 RESEARCH FOCUS:
 {research_query}
 
-Find information that can materially help a
+Find useful, factual information that can help a
 film production team.
 
 Focus on:
 
 - Real-world location facts
 - Location context
-- Environmental or geographical information
-- Access or filming considerations when available
-- Visual/contextual details
-- Logistical considerations
-- Relevant restrictions
+- Geography
+- Environment
+- Access considerations
+- Visual details
+- Logistics
+- Restrictions
 - Timing considerations
-- Practical production considerations
+- Practical filming considerations
+
+Do not invent facts.
+
+Use reliable web sources.
 
 Return concise findings with supporting sources.
 """
 
-        # Parallel's execute method creates the task,
-        # waits for completion, and returns the result.
         result = self.client.task_run.execute(
             processor=self.processor,
             input=objective,
@@ -118,21 +121,25 @@ Return concise findings with supporting sources.
         if content is None:
             content = str(output)
 
-        sources: list[dict[str, Any]] = []
+        sources = []
 
-        # Parallel returns citation information through
-        # the output basis.
-        for basis in getattr(
-            output,
-            "basis",
-            [],
-        ) or []:
-
-            for citation in getattr(
-                basis,
-                "citations",
+        for basis in (
+            getattr(
+                output,
+                "basis",
                 [],
-            ) or []:
+            )
+            or []
+        ):
+
+            for citation in (
+                getattr(
+                    basis,
+                    "citations",
+                    [],
+                )
+                or []
+            ):
 
                 sources.append(
                     {
@@ -155,18 +162,20 @@ Return concise findings with supporting sources.
                 )
 
         # Remove duplicate URLs.
-        unique_sources: list[
-            dict[str, Any]
-        ] = []
-
-        seen_urls: set[str] = set()
+        unique_sources = []
+        seen_urls = set()
 
         for source in sources:
+
             url = source.get("url")
 
             if url and url not in seen_urls:
+
                 seen_urls.add(url)
-                unique_sources.append(source)
+
+                unique_sources.append(
+                    source
+                )
 
         return {
             "status": "completed",

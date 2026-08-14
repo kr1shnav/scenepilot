@@ -19,14 +19,12 @@ from app.services.screenplay import (
 
 router = APIRouter()
 
-
 UPLOAD_DIR = Path("uploads")
 
 UPLOAD_DIR.mkdir(
     parents=True,
     exist_ok=True,
 )
-
 
 gemini_service = GeminiService()
 parallel_service = ParallelService()
@@ -35,14 +33,6 @@ parallel_service = ParallelService()
 def _select_research_scenes(
     scenes: list[dict],
 ) -> list[dict]:
-    """
-    Select scenes that genuinely benefit from
-    external research.
-
-    A maximum can be configured through:
-
-    PARALLEL_MAX_SCENES=3
-    """
 
     max_scenes = int(
         os.getenv(
@@ -57,25 +47,6 @@ def _select_research_scenes(
         if scene.get("needs_research") is True
     ]
 
-    # Safety fallback:
-    # If Gemini did not mark any scene for research,
-    # select the first scene with a meaningful location.
-    if not selected:
-
-        for scene in scenes:
-
-            location = str(
-                scene.get(
-                    "location",
-                    "",
-                )
-            ).strip()
-
-            if location:
-                selected.append(scene)
-
-                break
-
     return selected[:max_scenes]
 
 
@@ -83,10 +54,6 @@ def _select_research_scenes(
 async def upload_screenplay(
     file: UploadFile = File(...),
 ):
-    """
-    Upload a screenplay PDF and run the
-    ScenePilot analysis pipeline.
-    """
 
     if not file.filename:
         raise HTTPException(
@@ -115,7 +82,9 @@ async def upload_screenplay(
             detail="The uploaded file is empty.",
         )
 
-    file_path.write_bytes(contents)
+    file_path.write_bytes(
+        contents
+    )
 
     screenplay_text = extract_text_from_pdf(
         file_path
@@ -127,14 +96,14 @@ async def upload_screenplay(
             detail="Could not extract text from the PDF.",
         )
 
-    # --------------------------------------------------
-    # STEP 1
-    # Gemini analyzes the screenplay.
-    # --------------------------------------------------
+    # ---------------------------------------------
+    # GEMINI — SCREENPLAY ANALYSIS
+    # ---------------------------------------------
 
     try:
-        analysis = (
-            await gemini_service
+
+        analysis = await (
+            gemini_service
             .analyze_screenplay(
                 screenplay_text
             )
@@ -152,10 +121,9 @@ async def upload_screenplay(
         [],
     )
 
-    # --------------------------------------------------
-    # STEP 2
-    # Select only scenes that need research.
-    # --------------------------------------------------
+    # ---------------------------------------------
+    # SELECT RESEARCH SCENES
+    # ---------------------------------------------
 
     research_scenes = (
         _select_research_scenes(
@@ -163,13 +131,9 @@ async def upload_screenplay(
         )
     )
 
-    # --------------------------------------------------
-    # STEP 3
-    # Parallel researches selected scenes.
-    #
-    # We use asyncio.to_thread because the Parallel
-    # Python SDK call is synchronous.
-    # --------------------------------------------------
+    # ---------------------------------------------
+    # PARALLEL RESEARCH
+    # ---------------------------------------------
 
     research_results = []
 
@@ -213,11 +177,29 @@ async def upload_screenplay(
                 }
             )
 
-    # --------------------------------------------------
-    # STEP 4
-    # Return the complete production intelligence
-    # payload.
-    # --------------------------------------------------
+    # ---------------------------------------------
+    # GEMINI — FINAL SYNTHESIS
+    # ---------------------------------------------
+
+    try:
+
+        production_intelligence = await (
+            gemini_service
+            .synthesize_production_intelligence(
+                scenes=scenes,
+                research=research_results,
+            )
+        )
+
+    except Exception as exc:
+
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "Production synthesis failed: "
+                f"{exc}"
+            ),
+        ) from exc
 
     return {
         "status": "success",
@@ -232,6 +214,7 @@ async def upload_screenplay(
         "researched_scene_count": len(
             research_results
         ),
-        "scenes": scenes,
-        "research": research_results,
+        "production_intelligence": (
+            production_intelligence
+        ),
     }

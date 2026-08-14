@@ -1,21 +1,43 @@
 import json
+import os
 
+from dotenv import load_dotenv
 from google import genai
 
-from app.config import settings
+load_dotenv()
 
 
 class GeminiService:
+    """
+    ScenePilot Gemini API service.
+
+    Uses the Gemini Developer API through Google AI Studio,
+    not Vertex AI.
+    """
 
     def __init__(self):
-        self.client = genai.Client()
+        api_key = os.getenv("GEMINI_API_KEY")
+
+        if not api_key:
+            raise RuntimeError(
+                "GEMINI_API_KEY is not configured."
+            )
+
+        self.model = os.getenv(
+            "GEMINI_MODEL",
+            "gemini-2.5-flash",
+        )
+
+        self.client = genai.Client(
+            api_key=api_key
+        )
 
     async def analyze_screenplay(
         self,
         screenplay_text: str,
     ) -> dict:
         """
-        Analyze screenplay and return structured scene data.
+        Analyze screenplay and identify scenes.
         """
 
         prompt = f"""
@@ -30,35 +52,40 @@ scene.
 
 For each scene extract:
 
-1. Scene number
-2. Full scene heading
-3. Location
-4. Interior or exterior
-5. Time of day
-6. Short summary
-7. Important production requirements
-8. Whether external web research would materially
-   improve production planning
-9. A concise research query when research is useful
+- scene_number
+- heading
+- location
+- interior_exterior
+- time_of_day
+- summary
+- production_requirements
+- needs_research
+- research_query
 
-IMPORTANT:
+Set needs_research=true when external web research
+would materially help production planning.
 
-Set "needs_research" to true when the scene contains
-a real-world location, landmark, geographical setting,
-specific venue, historical setting, environmental
-condition, transportation setting, or other detail
-where external information would help a filmmaker.
+Set needs_research=false when external research would
+not meaningfully help.
 
-Set "needs_research" to false for scenes where external
-research would not add meaningful production value.
+Research-worthy examples include:
 
-If a screenplay contains at least one specific
-real-world location, make sure that scene has
-"needs_research": true.
+- Real-world locations
+- Railway stations
+- Airports
+- Hotels
+- Restaurants
+- Landmarks
+- National parks
+- Cities
+- Historical places
+- Specific geographical locations
+- Real events
+- Specialized environments
 
 Return ONLY valid JSON.
 
-Use exactly this structure:
+Use this structure:
 
 {{
     "scenes": [
@@ -70,12 +97,12 @@ Use exactly this structure:
             "time_of_day": "NIGHT",
             "summary": "A character waits on the platform.",
             "production_requirements": [
-                "Railway station location",
+                "Railway station",
                 "Night lighting",
                 "Background crowd"
             ],
             "needs_research": true,
-            "research_query": "Research Guwahati Railway Station for film production planning, including location context, environment, access considerations, and useful visual details."
+            "research_query": "Research Guwahati Railway Station for film production planning, including location context, environment, access considerations and useful visual details."
         }}
     ]
 }}
@@ -89,7 +116,7 @@ SCREENPLAY:
 """
 
         response = await self.client.aio.models.generate_content(
-            model=settings.gemini_model,
+            model=self.model,
             contents=prompt,
         )
 
@@ -100,19 +127,7 @@ SCREENPLAY:
                 "Gemini returned an empty response."
             )
 
-        # Remove accidental markdown fences.
-        text = text.strip()
-
-        if text.startswith("```json"):
-            text = text[7:]
-
-        elif text.startswith("```"):
-            text = text[3:]
-
-        if text.endswith("```"):
-            text = text[:-3]
-
-        text = text.strip()
+        text = self._clean_json(text)
 
         try:
             data = json.loads(text)
@@ -135,3 +150,141 @@ SCREENPLAY:
             )
 
         return data
+
+    async def synthesize_production_intelligence(
+        self,
+        scenes: list[dict],
+        research: list[dict],
+    ) -> dict:
+        """
+        Combine screenplay analysis with Parallel research.
+        """
+
+        scenes_text = json.dumps(
+            scenes,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+        research_text = json.dumps(
+            research,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+        prompt = f"""
+You are the Production Intelligence Agent for ScenePilot.
+
+Combine:
+
+1. SCREENPLAY ANALYSIS
+2. REAL-WORLD RESEARCH FROM PARALLEL
+
+Your job is to produce actionable film
+pre-production intelligence.
+
+Do not invent facts.
+
+Only use facts supported by the screenplay
+or the provided Parallel research.
+
+Preserve source URLs.
+
+SCREENPLAY ANALYSIS:
+
+{scenes_text}
+
+PARALLEL RESEARCH:
+
+{research_text}
+
+Return ONLY valid JSON.
+
+Use exactly this structure:
+
+{{
+    "production_summary": {{
+        "total_scenes": 0,
+        "researched_scenes": 0,
+        "locations": [],
+        "major_requirements": [],
+        "key_considerations": []
+    }},
+    "scenes": [
+        {{
+            "scene_number": 1,
+            "heading": "",
+            "location": "",
+            "summary": "",
+            "production_requirements": [],
+            "research_findings": [],
+            "production_considerations": [],
+            "sources": []
+        }}
+    ]
+}}
+
+For every researched scene:
+
+research_findings:
+List the useful facts discovered through Parallel.
+
+production_considerations:
+Explain what those findings mean for the
+film production team.
+
+sources:
+Preserve useful source titles and URLs.
+
+Keep the output concise and practical.
+
+Return JSON only.
+"""
+
+        response = await self.client.aio.models.generate_content(
+            model=self.model,
+            contents=prompt,
+        )
+
+        text = response.text or ""
+
+        if not text:
+            raise RuntimeError(
+                "Gemini synthesis returned an empty response."
+            )
+
+        text = self._clean_json(text)
+
+        try:
+            result = json.loads(text)
+
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "Gemini synthesis returned invalid JSON."
+            ) from exc
+
+        if not isinstance(result, dict):
+            raise RuntimeError(
+                "Gemini synthesis must return a JSON object."
+            )
+
+        return result
+
+    @staticmethod
+    def _clean_json(text: str) -> str:
+        """
+        Remove accidental Markdown code fences.
+        """
+
+        text = text.strip()
+
+        if text.startswith("```json"):
+            text = text[7:]
+
+        elif text.startswith("```"):
+            text = text[3:]
+
+        if text.endswith("```"):
+            text = text[:-3]
+
+        return text.strip()
