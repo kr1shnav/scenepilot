@@ -1,5 +1,4 @@
 import os
-import time
 from typing import Any
 
 from dotenv import load_dotenv
@@ -9,13 +8,7 @@ load_dotenv()
 
 
 class ParallelService:
-    """
-    ScenePilot integration with the Parallel API.
-
-    Parallel is used to research real-world information relevant
-    to screenplay scenes and return research that can later be
-    synthesized by Gemini.
-    """
+    """Research screenplay scenes with the Parallel API."""
 
     def __init__(self) -> None:
         api_key = os.getenv("PARALLEL_API_KEY")
@@ -27,69 +20,157 @@ class ParallelService:
 
         self.client = Parallel(api_key=api_key)
 
+        self.processor = os.getenv(
+            "PARALLEL_PROCESSOR",
+            "core",
+        )
+
     def research_scene(
         self,
-        scene_description: str,
-    ) -> Any:
+        scene: dict[str, Any],
+    ) -> dict[str, Any]:
         """
-        Research a screenplay scene using Parallel.
-
-        This creates a Parallel task, waits for completion,
-        and returns the completed task information.
+        Research one screenplay scene using Parallel.
         """
 
-        if not scene_description.strip():
-            raise ValueError(
-                "scene_description cannot be empty."
-            )
+        heading = scene.get(
+            "heading",
+            "Unknown scene",
+        )
+
+        location = scene.get(
+            "location",
+            "Unknown location",
+        )
+
+        summary = scene.get(
+            "summary",
+            "",
+        )
+
+        requirements = scene.get(
+            "production_requirements",
+            [],
+        )
+
+        research_query = scene.get(
+            "research_query",
+            "",
+        )
 
         objective = f"""
-You are researching a film production scene.
+You are the web research specialist for ScenePilot,
+an AI film pre-production intelligence system.
 
-Analyze the following screenplay scene and find useful,
-fact-based information that can help a filmmaker plan
-and understand the scene.
+Research the following screenplay scene for a filmmaker.
 
-SCREENPLAY SCENE:
-{scene_description}
-
-RESEARCH OBJECTIVES:
-
-1. Identify important real-world location information.
-2. Find relevant environmental or geographical context.
-3. Identify production considerations.
-4. Identify logistical considerations.
-5. Find useful visual/contextual information.
-6. Identify information that could affect filming.
-7. Provide reliable sources for important claims.
-
-Focus on information that is genuinely useful to a
-film production team.
-
+Use reliable current web sources.
 Do not invent facts.
 
-Return concise, useful research with source information.
+SCENE HEADING:
+{heading}
+
+LOCATION:
+{location}
+
+SCENE SUMMARY:
+{summary}
+
+PRODUCTION REQUIREMENTS:
+{requirements}
+
+RESEARCH FOCUS:
+{research_query}
+
+Find information that can materially help a
+film production team.
+
+Focus on:
+
+- Real-world location facts
+- Location context
+- Environmental or geographical information
+- Access or filming considerations when available
+- Visual/contextual details
+- Logistical considerations
+- Relevant restrictions
+- Timing considerations
+- Practical production considerations
+
+Return concise findings with supporting sources.
 """
 
-        task = self.client.task_run.create(
-            processor="core",
+        # Parallel's execute method creates the task,
+        # waits for completion, and returns the result.
+        result = self.client.task_run.execute(
+            processor=self.processor,
             input=objective,
         )
 
-        run_id = task.run_id
+        output = result.output
 
-        # Poll until Parallel finishes the research task.
-        while True:
-            result = self.client.task_run.retrieve(run_id)
+        content = getattr(
+            output,
+            "content",
+            None,
+        )
 
-            if result.status == "completed":
-                return result
+        if content is None:
+            content = str(output)
 
-            if result.status == "failed":
-                error = result.error or "Unknown Parallel error"
+        sources: list[dict[str, Any]] = []
 
-                raise RuntimeError(
-                    f"Parallel research failed: {error}"
+        # Parallel returns citation information through
+        # the output basis.
+        for basis in getattr(
+            output,
+            "basis",
+            [],
+        ) or []:
+
+            for citation in getattr(
+                basis,
+                "citations",
+                [],
+            ) or []:
+
+                sources.append(
+                    {
+                        "title": getattr(
+                            citation,
+                            "title",
+                            None,
+                        ),
+                        "url": getattr(
+                            citation,
+                            "url",
+                            None,
+                        ),
+                        "excerpts": getattr(
+                            citation,
+                            "excerpts",
+                            None,
+                        ),
+                    }
                 )
 
-            time.sleep(2)
+        # Remove duplicate URLs.
+        unique_sources: list[
+            dict[str, Any]
+        ] = []
+
+        seen_urls: set[str] = set()
+
+        for source in sources:
+            url = source.get("url")
+
+            if url and url not in seen_urls:
+                seen_urls.add(url)
+                unique_sources.append(source)
+
+        return {
+            "status": "completed",
+            "processor": self.processor,
+            "content": content,
+            "sources": unique_sources,
+        }
