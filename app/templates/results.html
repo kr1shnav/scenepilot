@@ -9,7 +9,7 @@
 <body>
     {% set intelligence = production_intelligence | default({}, true) %}
     {% set summary = intelligence.get('production_summary', {}) %}
-    {% set result_scenes = intelligence.get('scenes', []) %}
+    {% set scenes = intelligence.get('scenes', []) %}
     {% set locations = summary.get('locations', []) %}
     {% set requirements = summary.get('major_requirements', []) %}
     {% set considerations = summary.get('key_considerations', []) %}
@@ -59,7 +59,7 @@
 
             <section class="scenes-section">
                 <div class="section-heading"><div><p class="section-index">04 Scene intelligence</p><h2>Scene-by-scene production plan</h2></div><span class="parallel-status"><span class="status-dot"></span>Research powered by Parallel</span></div>
-                {% for scene in result_scenes %}
+                {% for scene in scenes %}
                 {% set research = scene.get('research_findings', []) %}
                 {% set scene_requirements = scene.get('production_requirements', []) %}
                 {% set scene_considerations = scene.get('production_considerations', []) %}
@@ -69,10 +69,8 @@
                     {% if scene.get('summary') %}<p class="scene-summary">{{ scene.get('summary') }}</p>{% endif %}
                     <div class="scene-columns">
                         <section><h4>Production requirements</h4>{% if scene_requirements %}<ul>{% for item in scene_requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No requirements returned.</p>{% endif %}</section>
-                        <section class="research-panel"><div class="research-label">{% if research %}RESEARCHED{% else %}NO EXTERNAL RESEARCH{% endif %}</div><h4>Parallel research</h4>{% if research %}<ul>{% for finding in research %}<li>{{ finding }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No external research returned for this scene.</p>{% endif %}</section>
+                        <section class="research-panel" aria-label="Location intelligence"><p class="research-label">Location intelligence</p>{% if research %}<h4 class="research-location">{{ scene.get('location', 'Location not specified') }}</h4><div class="research-findings">{% for finding in research %}<p>{% if finding is mapping %}{{ finding.get('output', '') }}{% else %}{{ finding }}{% endif %}</p>{% endfor %}</div>{% if scene_considerations %}<section class="production-impact" aria-label="Production impact"><p class="impact-label">Production impact</p><ul>{% for consideration in scene_considerations %}<li>{{ consideration }}</li>{% endfor %}</ul></section>{% endif %}{% if sources %}<details class="research-sources"><summary>{{ sources | length }} SOURCE{{ '' if sources | length == 1 else 'S' }} <span aria-hidden="true">·</span> RESEARCH VIA PARALLEL <span aria-hidden="true">↗</span></summary><ul>{% for source in sources %}{% if source.get('url') %}<li><a href="{{ source.get('url') }}" target="_blank" rel="noopener noreferrer">{{ source.get('title') or source.get('url') }} <span aria-hidden="true">↗</span></a></li>{% endif %}{% endfor %}</ul></details>{% endif %}{% else %}<p class="research-empty">No external location research was required for this scene.</p>{% endif %}</section>
                     </div>
-                    <section class="production-strip"><h4>Production considerations</h4>{% if scene_considerations %}<ul>{% for item in scene_considerations %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No additional considerations returned.</p>{% endif %}</section>
-                    {% if sources %}<details class="sources"><summary>Sources <span>{{ sources | length }} reference{{ '' if sources | length == 1 else 's' }} +</span></summary><ul>{% for source in sources %}{% if source.get('url') %}<li><a href="{{ source.get('url') }}" target="_blank" rel="noopener noreferrer">{{ source.get('title') or source.get('url') }} <span aria-hidden="true">↗</span></a></li>{% endif %}{% endfor %}</ul></details>{% endif %}
                 </article>
                 {% else %}<p class="empty-state">No scene intelligence was returned.</p>{% endfor %}
             </section>

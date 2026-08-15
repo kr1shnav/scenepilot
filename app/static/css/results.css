@@ -60,17 +60,24 @@ h4 { margin: 0 0 16px; color: var(--text); font-size: 10px; font-weight: 700; le
 .scene-card ul { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: 12px; line-height: 1.5; }
 .scene-card li::before { content: "•"; margin-right: 8px; color: var(--dim); }
 .research-panel { background: var(--surface-soft); }
-.research-label { margin-bottom: 14px; color: #82977d; font-size: 9px; }
-.research-label + h4 { margin-bottom: 14px; }
-.production-strip { padding: 22px 24px; border-top: 1px solid var(--line); }
-.production-strip ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.sources { border-top: 1px solid var(--line); }
-.sources summary { display: flex; justify-content: space-between; padding: 17px 24px; color: var(--muted); cursor: pointer; font-size: 12px; list-style: none; }
-.sources summary::-webkit-details-marker { display: none; }
-.sources summary span { color: var(--dim); }
-.sources ul { padding: 0 24px 20px; }
-.sources a { color: var(--muted); text-decoration: none; }
-.sources a:hover { color: var(--text); }
+.research-label { margin-bottom: 18px; }
+.research-location { margin: 0 0 16px; color: var(--text); font-family: Georgia, "Times New Roman", serif; font-size: 22px; font-weight: 500; letter-spacing: -.02em; line-height: 1.12; text-transform: none; }
+.research-findings { display: grid; gap: 10px; }
+.research-findings p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.research-empty { max-width: 330px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.production-impact { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.impact-label { margin: 0 0 12px; color: var(--dim); font-size: 9px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.production-impact ul { gap: 9px; }
+.production-impact li { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.production-impact li::before { content: "→"; margin-right: 8px; color: var(--dim); }
+.research-sources { margin-top: 20px; border-top: 1px solid var(--line); }
+.research-sources summary { padding-top: 13px; color: var(--dim); cursor: pointer; font-size: 9px; font-weight: 700; letter-spacing: .11em; list-style: none; text-transform: uppercase; }
+.research-sources summary::-webkit-details-marker { display: none; }
+.research-sources[open] summary { margin-bottom: 12px; color: var(--muted); }
+.research-sources ul { gap: 7px; }
+.research-sources li::before { content: none; }
+.research-sources a { color: var(--muted); font-size: 11px; text-decoration: none; }
+.research-sources a:hover { color: var(--text); }
 .empty-state { margin: 20px 0 0; color: var(--dim); font-size: 12px; line-height: 1.5; }
 .method-panel { margin-top: 64px; padding: 23px; }
 .method-panel ol { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 24px 0 0; padding: 0; list-style: none; }
@@ -85,7 +92,6 @@ h4 { margin: 0 0 16px; color: var(--text); font-size: 10px; font-weight: 700; le
     .result-hero { min-height: 0; padding: 48px 0 38px; align-items: flex-start; gap: 24px; }
     .overview-grid, .scene-columns { grid-template-columns: 1fr; }
     .scene-columns > section + section { border-top: 1px solid var(--line); border-left: 0; }
-    .production-strip ul { grid-template-columns: 1fr; }
     .method-panel ol { grid-template-columns: repeat(2, 1fr); row-gap: 24px; }
 }
 
@@ -100,8 +106,6 @@ h4 { margin: 0 0 16px; color: var(--text); font-size: 10px; font-weight: 700; le
     .overview-grid { padding-top: 32px; }
     .scenes-section { padding-top: 48px; }
     .section-heading h2 { font-size: 26px; }
-    .scene-header, .scene-summary, .scene-columns > section, .production-strip { padding-left: 17px; padding-right: 17px; }
-    .sources summary { padding-left: 17px; padding-right: 17px; }
-    .sources ul { padding-left: 17px; padding-right: 17px; }
+    .scene-header, .scene-summary, .scene-columns > section { padding-left: 17px; padding-right: 17px; }
     .results-footer { align-items: flex-start; flex-direction: column; gap: 8px; }
 }
