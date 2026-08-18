@@ -117,6 +117,19 @@ input {
     font-weight: 700;
 }
 
+.nav-history {
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.nav-history:hover {
+    color: var(--text);
+}
+
 .nav-status {
     display: flex;
 
@@ -517,6 +530,13 @@ input {
     outline-offset: 3px;
 }
 
+.analyze-button:disabled {
+    background: #cfcdc5;
+    color: #242321;
+    cursor: wait;
+    opacity: 1;
+}
+
 .arrow {
     font-size: 17px;
 }
@@ -628,6 +648,114 @@ input {
    TABLET
    ========================================================= */
 
+.analysis-loader[hidden] {
+    display: none;
+}
+
+.analysis-loader {
+    position: fixed;
+    z-index: 10;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    padding: 28px;
+    overflow-y: auto;
+    background: var(--bg);
+}
+
+.analysis-loader__content {
+    width: min(100%, 460px);
+    padding: 8px 0;
+}
+
+.analysis-loader__brand {
+    display: block;
+    margin-bottom: 54px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+.analysis-loader__eyebrow,
+.analysis-loader__partner {
+    margin: 0;
+    color: var(--dim);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+.analysis-loader__description {
+    margin: 14px 0 0;
+    color: var(--text);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(25px, 4vw, 34px);
+    font-weight: 500;
+    letter-spacing: -.025em;
+    line-height: 1.15;
+}
+
+.analysis-loader__indicator {
+    display: block;
+    width: 34px;
+    height: 1px;
+    margin: 34px 0 18px;
+    overflow: hidden;
+    background: var(--border);
+}
+
+.analysis-loader__indicator::after {
+    display: block;
+    width: 14px;
+    height: 100%;
+    background: var(--text);
+    content: "";
+    animation: loader-scan 1.4s ease-in-out infinite;
+}
+
+.analysis-loader__status {
+    min-height: 22px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.analysis-loader__research {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.analysis-loader__research p {
+    margin: 0 0 8px;
+    color: var(--text);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.analysis-loader__research span {
+    display: block;
+    max-width: 340px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.analysis-loader__partner {
+    margin-top: 28px;
+}
+
+@keyframes loader-scan {
+    0%, 100% { transform: translateX(-14px); }
+    50% { transform: translateX(34px); }
+}
+
 @media (max-width: 700px) {
 
     .page {
@@ -691,6 +819,18 @@ input {
         margin-top: 34px;
 
         padding: 17px;
+    }
+
+    .analysis-loader {
+        padding: 24px;
+    }
+
+    .analysis-loader__brand {
+        margin-bottom: 42px;
+    }
+
+    .analysis-loader__research {
+        margin-top: 38px;
     }
 
     .dropzone {

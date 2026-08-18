@@ -17,7 +17,7 @@
     <div class="results-page">
         <header class="results-nav">
             <a class="results-logo" href="/" aria-label="ScenePilot home"><span class="logo-mark">S</span><span>ScenePilot</span></a>
-            <span class="nav-status"><span class="status-dot"></span>PRODUCTION INTELLIGENCE</span>
+            <div class="results-nav-links"><a href="/history">Research history</a><a href="/">New analysis</a></div>
         </header>
 
         <main>
@@ -75,10 +75,9 @@
                 {% else %}<p class="empty-state">No scene intelligence was returned.</p>{% endfor %}
             </section>
 
-            <section class="method-panel"><p class="section-index">05 How ScenePilot works</p><ol><li><span>01</span>Screenplay</li><li><span>02</span>Gemini analysis</li><li><span>03</span>Parallel research</li><li><span>04</span>Production plan</li></ol></section>
         </main>
 
-        <footer class="results-footer"><span class="footer-logo">ScenePilot</span><span>Gemini · Parallel · Production Research</span><span>File ID {{ file_id }}</span></footer>
+        <footer class="production-footer"><div class="footer-intro"><span class="footer-logo">ScenePilot</span><p>Production intelligence for modern film workflows.</p></div><div class="footer-capabilities" aria-label="ScenePilot capabilities"><span>Screenplay analysis</span><span>Location intelligence</span><span>Production research</span></div><div class="footer-meta"><span>Built for production teams.<br>Powered by Gemini + Parallel.</span><span>© 2026 ScenePilot</span></div></footer>
     </div>
 </body>
 </html>

@@ -13,6 +13,7 @@ from fastapi import (
 from fastapi.templating import Jinja2Templates
 
 from app.services.gemini import GeminiService
+from app.services.history import HistoryService
 from app.services.parallel import ParallelService
 from app.services.screenplay import extract_text_from_pdf
 
@@ -31,6 +32,7 @@ UPLOAD_DIR.mkdir(
 
 gemini_service = GeminiService()
 parallel_service = ParallelService()
+history_service = HistoryService()
 
 
 def _select_research_scenes(
@@ -457,6 +459,19 @@ async def upload_screenplay(
             ),
         )
     )
+
+    if all(
+        result.get("research", {}).get("status") == "completed"
+        for result in research_results
+    ):
+        history_service.save_analysis(
+            file_id=file_id,
+            filename=file.filename,
+            text_length=len(screenplay_text),
+            scene_count=len(scenes),
+            researched_scene_count=len(research_results),
+            production_intelligence=production_intelligence,
+        )
 
     # =========================================================
     # 8. FINAL RESPONSE

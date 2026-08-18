@@ -12,7 +12,7 @@
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', path='/css/style.css') }}?v=3"
+        href="{{ url_for('static', path='/css/style.css') }}?v=4"
     >
 </head>
 
@@ -30,6 +30,10 @@
             >
                 <span class="logo-mark">S</span>
                 <span>ScenePilot</span>
+            </a>
+
+            <a class="nav-history" href="/history">
+                Research history
             </a>
 
             <!-- <div class="nav-status">
@@ -157,9 +161,10 @@
                     <button
                         type="submit"
                         class="analyze-button"
+                        id="analyze-button"
                     >
 
-                        <span>
+                        <span id="analyze-label">
                             Analyze screenplay
                         </span>
 
@@ -266,6 +271,21 @@
     </div>
 
 
+    <section class="analysis-loader" id="analysis-loader" aria-busy="true" hidden>
+        <div class="analysis-loader__content">
+            <span class="analysis-loader__brand">ScenePilot</span>
+            <p class="analysis-loader__eyebrow">Analyzing screenplay</p>
+            <p class="analysis-loader__description">Extracting scenes and production requirements...</p>
+            <span class="analysis-loader__indicator" aria-hidden="true"></span>
+            <p class="analysis-loader__status" id="analysis-status" aria-live="polite">Extracting screenplay structure...</p>
+            <div class="analysis-loader__research">
+                <p>Researching production conditions</p>
+                <span>ScenePilot is researching relevant locations and production constraints.</span>
+            </div>
+            <p class="analysis-loader__partner">Powered by Parallel</p>
+        </div>
+    </section>
+
     <script>
 
         const input =
@@ -279,6 +299,32 @@
 
         const selectedFile =
             document.getElementById("selected-file");
+
+        const uploadForm =
+            document.querySelector(".upload-form");
+
+        const analyzeButton =
+            document.getElementById("analyze-button");
+
+        const analyzeLabel =
+            document.getElementById("analyze-label");
+
+        const analysisLoader =
+            document.getElementById("analysis-loader");
+
+        const analysisStatus =
+            document.getElementById("analysis-status");
+
+        const loadingMessages = [
+            "Extracting screenplay structure...",
+            "Identifying production requirements...",
+            "Selecting scenes for external research...",
+            "Researching real-world production conditions...",
+            "Compiling production intelligence..."
+        ];
+
+        let isSubmitting = false;
+        let statusIndex = 0;
 
 
         input.addEventListener(
@@ -382,6 +428,47 @@
                         "has-file"
                     );
                 }
+            }
+        );
+
+        uploadForm.addEventListener(
+            "submit",
+            function (event) {
+                if (!input.files.length) {
+                    event.preventDefault();
+                    input.reportValidity();
+                    return;
+                }
+
+                if (isSubmitting) {
+                    event.preventDefault();
+                    return;
+                }
+
+                event.preventDefault();
+                isSubmitting = true;
+                analyzeButton.disabled = true;
+                analyzeButton.setAttribute("aria-disabled", "true");
+                analyzeLabel.textContent = "Analyzing...";
+                analysisLoader.hidden = false;
+
+                window.setInterval(
+                    function () {
+                        statusIndex = (statusIndex + 1) % loadingMessages.length;
+                        analysisStatus.textContent = loadingMessages[statusIndex];
+                    },
+                    2800
+                );
+
+                window.requestAnimationFrame(
+                    function () {
+                        window.requestAnimationFrame(
+                            function () {
+                                uploadForm.submit();
+                            }
+                        );
+                    }
+                );
             }
         );
 

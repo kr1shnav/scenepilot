@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.routes.analysis import router as analysis_router
+from app.routes.history import router as history_router
 from app.routes.pages import router as pages_router
 
 
@@ -29,6 +30,11 @@ app.mount(
 
 app.include_router(
     pages_router
+)
+
+
+app.include_router(
+    history_router
 )
 
 
