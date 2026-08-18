@@ -85,23 +85,55 @@ RESEARCH FOCUS:
 Find useful, factual information that can help a
 film production team.
 
-Focus on:
+Focus only on information relevant to this specific scene.
+
+Useful research areas may include, when relevant:
 
 - Real-world location facts
-- Location context
-- Geography
-- Environment
-- Access considerations
-- Visual details
+- Location context and layout
+- Access and transport
+- Environment and visual characteristics
+- Crowd and activity
 - Logistics
-- Restrictions
-- Timing considerations
-- Practical filming considerations
+- Equipment considerations
+- Permissions and filming restrictions
+- Safety
+- Weather / daylight / seasonal timing
+- Practical production considerations
 
-Do not invent facts.
+IMPORTANT OUTPUT FORMAT:
+
+- NEVER return one long paragraph.
+- NEVER write an essay.
+- Use short section headings.
+- Under every section, use bullet points.
+- Each bullet must contain ONE useful production fact.
+- Keep each bullet to 1–2 sentences.
+- Only create sections that are relevant to this scene.
+- Do not force generic sections onto every scene.
+- Do not repeat information.
+- If something is uncertain, write "Needs verification".
+- Do not invent facts.
+
+Example format:
+
+## Access
+- Short production-relevant fact.
+- Short production-relevant fact.
+
+## Visual Environment
+- Short production-relevant fact.
+- Short production-relevant fact.
+
+## Production Considerations
+- Short production-relevant fact.
+
+## Permissions
+- Short production-relevant fact.
+
+Adapt the section names and number of sections to the actual scene.
 
 Use reliable web sources.
-
 Return concise findings with supporting sources.
 """
 
