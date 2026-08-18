@@ -4,80 +4,961 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ScenePilot — Production Intelligence</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/results.css') }}?v=1">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/results.css') }}?v=2">
 </head>
+
 <body>
-    {% set intelligence = production_intelligence | default({}, true) %}
-    {% set summary = intelligence.get('production_summary', {}) %}
-    {% set scenes = intelligence.get('scenes', []) %}
-    {% set locations = summary.get('locations', []) %}
-    {% set requirements = summary.get('major_requirements', []) %}
-    {% set considerations = summary.get('key_considerations', []) %}
 
-    <div class="results-page">
-        <header class="results-nav">
-            <a class="results-logo" href="/" aria-label="ScenePilot home"><span class="logo-mark">S</span><span>ScenePilot</span></a>
-            <div class="results-nav-links"><a href="/history">Research history</a><a href="/">New analysis</a></div>
-        </header>
+{% set intelligence = production_intelligence | default({}, true) %}
+{% set summary = intelligence.get('production_summary', {}) %}
+{% set scenes = intelligence.get('scenes', []) %}
+{% set locations = summary.get('locations', []) %}
+{% set requirements = summary.get('major_requirements', []) %}
+{% set considerations = summary.get('key_considerations', []) %}
 
-        <main>
-            <section class="result-hero">
-                <div>
-                    <p class="eyebrow">ANALYSIS COMPLETE</p>
-                    <h1>{{ filename }}</h1>
-                    <p>Research-backed production intelligence<br>generated from your screenplay.</p>
+<div class="results-page">
+
+    <header class="results-nav">
+        <a class="results-logo" href="/" aria-label="ScenePilot home">
+            <span class="logo-mark">S</span>
+            <span>ScenePilot</span>
+        </a>
+
+        <div class="results-nav-links">
+            <a href="/history">Research history</a>
+            <a href="/">New analysis</a>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- HERO -->
+        <section class="result-hero">
+            <div>
+                <p class="eyebrow">ANALYSIS COMPLETE</p>
+                <h1>{{ filename }}</h1>
+                <p>
+                    Research-backed production intelligence<br>
+                    generated from your screenplay.
+                </p>
+            </div>
+
+            <a class="new-analysis" href="/">
+                New analysis <span aria-hidden="true">↗</span>
+            </a>
+        </section>
+
+
+        <!-- STATS -->
+        <section class="stats-grid" aria-label="Analysis summary">
+
+            <article class="stat-card">
+                <span>SCENES</span>
+                <strong>{{ scene_count }}</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>RESEARCHED</span>
+                <strong>{{ researched_scene_count }}</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>LOCATIONS</span>
+                <strong>{{ locations | length }}</strong>
+            </article>
+
+            <article class="stat-card">
+                <span>REQUIREMENTS</span>
+                <strong>{{ requirements | length }}</strong>
+            </article>
+
+        </section>
+
+
+        <!-- OVERVIEW -->
+        <section class="overview-grid">
+
+            <article class="panel">
+
+                <p class="section-index">01 Locations</p>
+
+                {% if locations %}
+
+                <ol class="locations-list">
+
+                    {% for location in locations %}
+
+                    <li>
+                        <span>{{ '%02d' | format(loop.index) }}</span>
+                        {{ location }}
+                    </li>
+
+                    {% endfor %}
+
+                </ol>
+
+                {% else %}
+
+                <p class="empty-state">
+                    No production locations were identified.
+                </p>
+
+                {% endif %}
+
+            </article>
+
+
+            <article class="panel">
+
+                <p class="section-index">02 Major requirements</p>
+
+                {% if requirements %}
+
+                <div class="tag-list">
+
+                    {% for requirement in requirements %}
+                        <span>{{ requirement }}</span>
+                    {% endfor %}
+
                 </div>
-                <a class="new-analysis" href="/">New analysis <span aria-hidden="true">↗</span></a>
-            </section>
 
-            <section class="stats-grid" aria-label="Analysis summary">
-                <article class="stat-card"><span>SCENES</span><strong>{{ scene_count }}</strong></article>
-                <article class="stat-card"><span>RESEARCHED</span><strong>{{ researched_scene_count }}</strong></article>
-                <article class="stat-card"><span>LOCATIONS</span><strong>{{ locations | length }}</strong></article>
-                <article class="stat-card"><span>REQUIREMENTS</span><strong>{{ requirements | length }}</strong></article>
-            </section>
+                {% else %}
 
-            <section class="overview-grid">
-                <article class="panel">
-                    <p class="section-index">01 Locations</p>
-                    {% if locations %}<ol class="locations-list">{% for location in locations %}<li><span>{{ '%02d' | format(loop.index) }}</span>{{ location }}</li>{% endfor %}</ol>
-                    {% else %}<p class="empty-state">No production locations were identified.</p>{% endif %}
-                </article>
-                <article class="panel">
-                    <p class="section-index">02 Major requirements</p>
-                    {% if requirements %}<div class="tag-list">{% for requirement in requirements %}<span>{{ requirement }}</span>{% endfor %}</div>
-                    {% else %}<p class="empty-state">No major requirements were identified.</p>{% endif %}
-                </article>
-            </section>
+                <p class="empty-state">
+                    No major requirements were identified.
+                </p>
 
-            <section class="warning-panel">
-                <p class="section-index">03 Key production considerations</p>
-                <div class="warning-heading"><span aria-hidden="true">!</span><p>Permission / safety / weather considerations</p></div>
-                {% if considerations %}<ul class="arrow-list">{% for consideration in considerations %}<li>{{ consideration }}</li>{% endfor %}</ul>
-                {% else %}<p class="empty-state">No additional production considerations were returned.</p>{% endif %}
-            </section>
+                {% endif %}
 
-            <section class="scenes-section">
-                <div class="section-heading"><div><p class="section-index">04 Scene intelligence</p><h2>Scene-by-scene production plan</h2></div><span class="parallel-status"><span class="status-dot"></span>Research powered by Parallel</span></div>
-                {% for scene in scenes %}
-                {% set research = scene.get('research_findings', []) %}
-                {% set scene_requirements = scene.get('production_requirements', []) %}
-                {% set scene_considerations = scene.get('production_considerations', []) %}
-                {% set sources = scene.get('sources', []) %}
-                <article class="scene-card">
-                    <header class="scene-header"><p>SCENE {{ '%02d' | format(scene.get('scene_number', loop.index)) }}</p><h3>{{ scene.get('heading', 'Untitled scene') }}</h3><span>{{ scene.get('location', 'Location not specified') }}</span></header>
-                    {% if scene.get('summary') %}<p class="scene-summary">{{ scene.get('summary') }}</p>{% endif %}
-                    <div class="scene-columns">
-                        <section><h4>Production requirements</h4>{% if scene_requirements %}<ul>{% for item in scene_requirements %}<li>{{ item }}</li>{% endfor %}</ul>{% else %}<p class="empty-state">No requirements returned.</p>{% endif %}</section>
-                        <section class="research-panel" aria-label="Location intelligence"><p class="research-label">Location intelligence</p>{% if research %}<h4 class="research-location">{{ scene.get('location', 'Location not specified') }}</h4><div class="research-findings">{% for finding in research %}<p>{% if finding is mapping %}{{ finding.get('output', '') }}{% else %}{{ finding }}{% endif %}</p>{% endfor %}</div>{% if scene_considerations %}<section class="production-impact" aria-label="Production impact"><p class="impact-label">Production impact</p><ul>{% for consideration in scene_considerations %}<li>{{ consideration }}</li>{% endfor %}</ul></section>{% endif %}{% if sources %}<details class="research-sources"><summary>{{ sources | length }} SOURCE{{ '' if sources | length == 1 else 'S' }} <span aria-hidden="true">·</span> RESEARCH VIA PARALLEL <span aria-hidden="true">↗</span></summary><ul>{% for source in sources %}{% if source.get('url') %}<li><a href="{{ source.get('url') }}" target="_blank" rel="noopener noreferrer">{{ source.get('title') or source.get('url') }} <span aria-hidden="true">↗</span></a></li>{% endif %}{% endfor %}</ul></details>{% endif %}{% else %}<p class="research-empty">No external location research was required for this scene.</p>{% endif %}</section>
-                    </div>
-                </article>
-                {% else %}<p class="empty-state">No scene intelligence was returned.</p>{% endfor %}
-            </section>
+            </article>
 
-        </main>
+        </section>
 
-        <footer class="production-footer"><div class="footer-intro"><span class="footer-logo">ScenePilot</span><p>Production intelligence for modern film workflows.</p></div><div class="footer-capabilities" aria-label="ScenePilot capabilities"><span>Screenplay analysis</span><span>Location intelligence</span><span>Production research</span></div><div class="footer-meta"><span>Built for production teams.<br>Powered by Gemini + Parallel.</span><span>© 2026 ScenePilot</span></div></footer>
-    </div>
+
+        <!-- CONSIDERATIONS -->
+        <section class="warning-panel">
+
+            <p class="section-index">
+                03 Key production considerations
+            </p>
+
+            <div class="warning-heading">
+                <span aria-hidden="true">!</span>
+                <p>Permission / safety / weather considerations</p>
+            </div>
+
+            {% if considerations %}
+
+            <ul class="arrow-list">
+
+                {% for consideration in considerations %}
+                    <li>{{ consideration }}</li>
+                {% endfor %}
+
+            </ul>
+
+            {% else %}
+
+            <p class="empty-state">
+                No additional production considerations were returned.
+            </p>
+
+            {% endif %}
+
+        </section>
+
+
+        <!-- SCENE INTELLIGENCE -->
+        <section class="scenes-section">
+
+            <div class="section-heading">
+
+                <div>
+                    <p class="section-index">
+                        04 Scene intelligence
+                    </p>
+
+                    <h2>
+                        Scene-by-scene production plan
+                    </h2>
+                </div>
+
+                <span class="parallel-status">
+                    <span class="status-dot"></span>
+                    Research powered by Parallel
+                </span>
+
+            </div>
+
+
+            {% for scene in scenes %}
+
+            {% set research = scene.get('research_findings', []) %}
+            {% set scene_requirements = scene.get('production_requirements', []) %}
+            {% set scene_considerations = scene.get('production_considerations', []) %}
+            {% set sources = scene.get('sources', []) %}
+
+
+            <article class="scene-card">
+
+                <!-- SCENE HEADER -->
+
+                <header class="scene-header">
+
+                    <p>
+                        SCENE {{ '%02d' | format(scene.get('scene_number', loop.index)) }}
+                    </p>
+
+                    <h3>
+                        {{ scene.get('heading', 'Untitled scene') }}
+                    </h3>
+
+                    <span>
+                        {{ scene.get('location', 'Location not specified') }}
+                    </span>
+
+                </header>
+
+
+                {% if scene.get('summary') %}
+
+                <p class="scene-summary">
+                    {{ scene.get('summary') }}
+                </p>
+
+                {% endif %}
+
+
+                <div class="scene-columns">
+
+
+                    <!-- PRODUCTION REQUIREMENTS -->
+
+                    <section>
+
+                        <h4>Production requirements</h4>
+
+                        {% if scene_requirements %}
+
+                        <ul>
+
+                            {% for item in scene_requirements %}
+                                <li>{{ item }}</li>
+                            {% endfor %}
+
+                        </ul>
+
+                        {% else %}
+
+                        <p class="empty-state">
+                            No requirements returned.
+                        </p>
+
+                        {% endif %}
+
+                    </section>
+
+
+                    <!-- LOCATION INTELLIGENCE -->
+
+                    <section
+                        class="research-panel"
+                        aria-label="Location intelligence"
+                    >
+
+                        <p class="research-label">
+                            Location intelligence
+                        </p>
+
+
+                        {% if research %}
+
+                        <h4 class="research-location">
+                            {{ scene.get('location', 'Location not specified') }}
+                        </h4>
+
+
+                        <!--
+                            IMPORTANT:
+                            Research is intentionally rendered as plain text
+                            here and formatted by JavaScript below.
+
+                            This means it works even when Parallel returns
+                            inconsistent Markdown/plain text.
+                        -->
+
+                        <div
+                            class="research-findings"
+                            data-research
+                        >
+
+                            {% for finding in research %}
+
+                                {% if finding is mapping %}
+
+                                    <div class="research-raw">
+                                        {{ finding.get('output', '') }}
+                                    </div>
+
+                                {% else %}
+
+                                    <div class="research-raw">
+                                        {{ finding }}
+                                    </div>
+
+                                {% endif %}
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- PRODUCTION IMPACT -->
+
+                        {% if scene_considerations %}
+
+                        <section
+                            class="production-impact"
+                            aria-label="Production impact"
+                        >
+
+                            <p class="impact-label">
+                                Production impact
+                            </p>
+
+                            <ul>
+
+                                {% for consideration in scene_considerations %}
+                                    <li>{{ consideration }}</li>
+                                {% endfor %}
+
+                            </ul>
+
+                        </section>
+
+                        {% endif %}
+
+
+                        <!-- SOURCES -->
+
+                        {% if sources %}
+
+                        <details class="research-sources">
+
+                            <summary>
+                                {{ sources | length }}
+                                SOURCE{{ '' if sources | length == 1 else 'S' }}
+                                <span aria-hidden="true">·</span>
+                                RESEARCH VIA PARALLEL
+                                <span aria-hidden="true">↗</span>
+                            </summary>
+
+                            <ul>
+
+                                {% for source in sources %}
+
+                                    {% if source.get('url') %}
+
+                                    <li>
+
+                                        <a
+                                            href="{{ source.get('url') }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            {{ source.get('title') or source.get('url') }}
+                                            <span aria-hidden="true">↗</span>
+                                        </a>
+
+                                    </li>
+
+                                    {% endif %}
+
+                                {% endfor %}
+
+                            </ul>
+
+                        </details>
+
+                        {% endif %}
+
+
+                        {% else %}
+
+                        <p class="research-empty">
+                            No external location research was required
+                            for this scene.
+                        </p>
+
+                        {% endif %}
+
+                    </section>
+
+                </div>
+
+            </article>
+
+            {% else %}
+
+            <p class="empty-state">
+                No scene intelligence was returned.
+            </p>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+
+
+    <footer class="production-footer">
+
+        <div class="footer-intro">
+            <span class="footer-logo">ScenePilot</span>
+            <p>
+                Production intelligence for modern film workflows.
+            </p>
+        </div>
+
+        <div
+            class="footer-capabilities"
+            aria-label="ScenePilot capabilities"
+        >
+            <span>Screenplay analysis</span>
+            <span>Location intelligence</span>
+            <span>Production research</span>
+        </div>
+
+        <div class="footer-meta">
+            <span>
+                Built for production teams.<br>
+                Powered by Gemini + Parallel.
+            </span>
+
+            <span>
+                © 2026 ScenePilot
+            </span>
+        </div>
+
+    </footer>
+
+</div>
+
+
+<!-- =========================================================
+     SMART RESEARCH FORMATTER
+     ========================================================= -->
+
+<script>
+
+(function () {
+
+    "use strict";
+
+
+    /*
+     * ScenePilot Research Formatter
+     *
+     * Converts inconsistent AI research into:
+     *
+     * SECTION
+     *
+     * • fact
+     * • fact
+     *
+     * SECTION
+     *
+     * • fact
+     *
+     * It does NOT know anything about locations.
+     * It therefore works with ANY screenplay scene.
+     */
+
+
+    const containers = document.querySelectorAll(
+        "[data-research]"
+    );
+
+
+    if (!containers.length) {
+        return;
+    }
+
+
+    /*
+     * Escape text before inserting into HTML.
+     * Research comes from an external AI service.
+     */
+
+    function escapeHTML(value) {
+
+        return String(value)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    /*
+     * Simple inline formatting.
+     *
+     * Supports:
+     * **bold**
+     */
+
+    function formatInline(value) {
+
+        let safe = escapeHTML(value);
+
+        safe = safe.replace(
+            /\*\*(.+?)\*\*/g,
+            "<strong>$1</strong>"
+        );
+
+        return safe;
+
+    }
+
+
+    /*
+     * Detect obvious headings.
+     */
+
+    function isHeading(line) {
+
+        const value = line.trim();
+
+        if (!value) {
+            return false;
+        }
+
+
+        // Markdown heading
+
+        if (/^#{1,4}\s+/.test(value)) {
+            return true;
+        }
+
+
+        // Heading ending in colon
+
+        if (
+            /^[A-Za-z][A-Za-z0-9 /&(),'-]{2,60}:$/.test(value)
+        ) {
+            return true;
+        }
+
+
+        // ALL CAPS heading
+
+        if (
+            value.length <= 60 &&
+            /^[A-Z0-9][A-Z0-9 /&(),'-]+$/.test(value) &&
+            /[A-Z]/.test(value)
+        ) {
+            return true;
+        }
+
+
+        return false;
+
+    }
+
+
+    /*
+     * Clean heading text.
+     */
+
+    function cleanHeading(value) {
+
+        return value
+            .trim()
+            .replace(/^#{1,4}\s+/, "")
+            .replace(/:$/, "")
+            .trim();
+
+    }
+
+
+    /*
+     * Detect bullet lines.
+     */
+
+    function isBullet(line) {
+
+        return /^\s*(?:[-*•]|\d+[.)])\s+/.test(line);
+
+    }
+
+
+    /*
+     * Remove bullet marker.
+     */
+
+    function cleanBullet(line) {
+
+        return line
+            .trim()
+            .replace(/^(?:[-*•]|\d+[.)])\s+/, "")
+            .trim();
+
+    }
+
+
+    /*
+     * Split long paragraphs into useful facts.
+     *
+     * This is intentionally conservative.
+     */
+
+    function splitFacts(text) {
+
+        text = text.trim();
+
+        if (!text) {
+            return [];
+        }
+
+
+        /*
+         * If the text is already short, preserve it.
+         */
+
+        if (text.length <= 180) {
+            return [text];
+        }
+
+
+        /*
+         * Split sentences while avoiding common abbreviations.
+         */
+
+        const protectedText = text
+            .replace(/\b(e\.g|i\.e|Mr|Mrs|Dr|Prof|St)\./gi, "$1§");
+
+
+        const sentences = protectedText
+            .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+            .map(sentence =>
+                sentence
+                    .replace(/§/g, ".")
+                    .trim()
+            )
+            .filter(Boolean);
+
+
+        /*
+         * If sentence splitting didn't work,
+         * keep the original paragraph.
+         */
+
+        if (sentences.length <= 1) {
+            return [text];
+        }
+
+
+        return sentences;
+
+    }
+
+
+    /*
+     * Parse the research text.
+     */
+
+    function parseResearch(rawText) {
+
+        const lines = rawText
+            .replace(/\r\n/g, "\n")
+            .replace(/\r/g, "\n")
+            .split("\n");
+
+
+        const sections = [];
+
+        let currentSection = null;
+
+
+        function ensureSection() {
+
+            if (!currentSection) {
+
+                currentSection = {
+                    title: null,
+                    facts: []
+                };
+
+                sections.push(currentSection);
+
+            }
+
+        }
+
+
+        for (let rawLine of lines) {
+
+            const line = rawLine.trim();
+
+
+            if (!line) {
+                continue;
+            }
+
+
+            /*
+             * Heading
+             */
+
+            if (isHeading(line)) {
+
+                const title = cleanHeading(line);
+
+                /*
+                 * Avoid treating a very long sentence
+                 * as a heading.
+                 */
+
+                if (
+                    title.length >= 2 &&
+                    title.length <= 70
+                ) {
+
+                    currentSection = {
+                        title,
+                        facts: []
+                    };
+
+                    sections.push(currentSection);
+
+                    continue;
+
+                }
+
+            }
+
+
+            ensureSection();
+
+
+            /*
+             * Existing bullet
+             */
+
+            if (isBullet(line)) {
+
+                const bullet = cleanBullet(line);
+
+                if (bullet) {
+
+                    currentSection.facts.push(
+                        bullet
+                    );
+
+                }
+
+                continue;
+
+            }
+
+
+            /*
+             * Normal paragraph.
+             *
+             * Convert long paragraphs into facts.
+             */
+
+            const facts = splitFacts(line);
+
+
+            for (const fact of facts) {
+
+                if (fact.trim()) {
+
+                    currentSection.facts.push(
+                        fact.trim()
+                    );
+
+                }
+
+            }
+
+        }
+
+
+        /*
+         * Remove duplicate facts.
+         */
+
+        for (const section of sections) {
+
+            const seen = new Set();
+
+            section.facts = section.facts.filter(
+                fact => {
+
+                    const key = fact
+                        .toLowerCase()
+                        .replace(/\s+/g, " ")
+                        .trim();
+
+                    if (seen.has(key)) {
+                        return false;
+                    }
+
+                    seen.add(key);
+
+                    return true;
+
+                }
+            );
+
+        }
+
+
+        return sections.filter(
+            section =>
+                section.facts.length > 0 ||
+                section.title
+        );
+
+    }
+
+
+    /*
+     * Render one research block.
+     */
+
+    function renderResearch(container) {
+
+        const rawNodes =
+            container.querySelectorAll(
+                ".research-raw"
+            );
+
+
+        let rawText = "";
+
+
+        rawNodes.forEach(node => {
+
+            rawText +=
+                "\n" +
+                node.textContent.trim();
+
+        });
+
+
+        rawText = rawText.trim();
+
+
+        if (!rawText) {
+
+            container.innerHTML =
+                '<p class="research-empty">No research findings available.</p>';
+
+            return;
+
+        }
+
+
+        const sections =
+            parseResearch(rawText);
+
+
+        if (!sections.length) {
+
+            container.innerHTML =
+                `<div class="research-fallback">
+                    <p>${formatInline(rawText)}</p>
+                </div>`;
+
+            return;
+
+        }
+
+
+        const fragment =
+            document.createDocumentFragment();
+
+
+        sections.forEach((section, index) => {
+
+            const wrapper =
+                document.createElement("section");
+
+            wrapper.className =
+                "research-section";
+
+
+            /*
+             * Only show section title when one exists.
+             */
+
+            if (section.title) {
+
+                const heading =
+                    document.createElement("h5");
+
+                heading.className =
+                    "research-section-title";
+
+                heading.textContent =
+                    section.title;
+
+                wrapper.appendChild(heading);
+
+            }
+
+
+            if (section.facts.length) {
+
+                const list =
+                    document.createElement("ul");
+
+                list.className =
+                    "research-bullet-list";
+
+
+                section.facts.forEach(fact => {
+
+                    const item =
+                        document.createElement("li");
+
+                    item.innerHTML =
+                        formatInline(fact);
+
+                    list.appendChild(item);
+
+                });
+
+
+                wrapper.appendChild(list);
+
+            }
+
+
+            fragment.appendChild(wrapper);
+
+        });
+
+
+        container.replaceChildren(fragment);
+
+    }
+
+
+    /*
+     * Format every scene independently.
+     */
+
+    containers.forEach(renderResearch);
+
+})();
+
+</script>
+
 </body>
 </html>
