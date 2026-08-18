@@ -1,65 +1,131 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Research History — ScenePilot</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/history.css') }}?v=1">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', path='/css/history.css') }}?v=1"
+    />
+  </head>
+  <body>
     <div class="history-page">
-        <header class="history-nav">
-            <a class="history-logo" href="/" aria-label="ScenePilot home"><span class="logo-mark">S</span><span>ScenePilot</span></a>
-            <a class="new-analysis-link" href="/">+ New analysis</a>
-        </header>
+      <header class="history-nav">
+        <a class="history-logo" href="/" aria-label="ScenePilot home"
+          ><span class="logo-mark">S</span><span>ScenePilot</span></a
+        >
+        <a class="new-analysis-link" href="/">+ New analysis</a>
+      </header>
 
-        <main>
-            <section class="history-hero">
-                <p>Research history</p>
-                <h1>Previous screenplay analyses and production intelligence.</h1>
-            </section>
+      <main>
+        <section class="history-hero">
+          <p>Research history</p>
+          <h1>Previous screenplay analyses and production intelligence.</h1>
+        </section>
 
-            {% if analyses %}
-            <section class="history-list" aria-label="Previous analyses">
-                <label class="history-search" for="history-search"><span>Search analyses</span><input id="history-search" type="search" placeholder="Search previous analyses..."></label>
-                <p class="no-matches" id="no-matches" hidden>No analyses match your search.</p>
-                <div id="history-entries">
-                    {% for analysis in analyses %}
-                    <article class="history-entry" data-filename="{{ analysis.get('filename', '') | lower }}">
-                        <div class="history-entry__title"><p>Filename</p><h2>{{ analysis.get('filename', 'Untitled screenplay') }}</h2></div>
-                        <dl class="history-entry__metadata"><div><dt>Date</dt><dd>{{ analysis.get('display_date', analysis.get('created_at', '')) }}</dd></div><div><dt>Scenes</dt><dd>{{ analysis.get('scene_count', 0) }}</dd></div><div><dt>Researched</dt><dd>{{ analysis.get('researched_scene_count', 0) }}</dd></div></dl>
-                        <div class="history-entry__actions"><a href="/history/{{ analysis.get('file_id') }}">View analysis <span aria-hidden="true">→</span></a><form action="/history/{{ analysis.get('file_id') }}/delete" method="post" onsubmit="return confirm('Delete this analysis?')"><button type="submit">Delete</button></form></div>
-                    </article>
-                    {% endfor %}
+        {% if analyses %}
+        <section class="history-list" aria-label="Previous analyses">
+          <label class="history-search" for="history-search"
+            ><span>Search analyses</span
+            ><input
+              id="history-search"
+              type="search"
+              placeholder="Search previous analyses..."
+          /></label>
+          <p class="no-matches" id="no-matches" hidden>
+            No analyses match your search.
+          </p>
+          <div id="history-entries">
+            {% for analysis in analyses %}
+            <article
+              class="history-entry"
+              data-filename="{{ analysis.get('filename', '') | lower }}"
+            >
+              <div class="history-entry__title">
+                <p>Filename</p>
+                <h2>{{ analysis.get('filename', 'Untitled screenplay') }}</h2>
+              </div>
+              <dl class="history-entry__metadata">
+                <div>
+                  <dt>Date</dt>
+                  <dd>
+                    {{ analysis.get('display_date', analysis.get('created_at',
+                    '')) }}
+                  </dd>
                 </div>
-            </section>
-            {% else %}
-            <section class="history-empty"><p>No previous analyses yet.</p><span>Upload a screenplay to create your first production analysis.</span><a href="/">Start new analysis <span aria-hidden="true">→</span></a></section>
-            {% endif %}
-        </main>
+                <div>
+                  <dt>Scenes</dt>
+                  <dd>{{ analysis.get('scene_count', 0) }}</dd>
+                </div>
+                <div>
+                  <dt>Researched</dt>
+                  <dd>{{ analysis.get('researched_scene_count', 0) }}</dd>
+                </div>
+              </dl>
+              <div class="history-entry__actions">
+                <a href="/history/{{ analysis.get('file_id') }}"
+                  >View analysis <span aria-hidden="true">→</span></a
+                >
+                <form
+                  action="/history/{{ analysis.get('file_id') }}/delete"
+                  method="post"
+                  onsubmit="return confirm('Delete this analysis?');"
+                >
+                  <button type="submit">Delete</button>
+                </form>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </section>
+        {% else %}
+        <section class="history-empty">
+          <p>No previous analyses yet.</p>
+          <span
+            >Upload a screenplay to create your first production analysis.</span
+          ><a href="/">Start new analysis <span aria-hidden="true">→</span></a>
+        </section>
+        {% endif %}
+      </main>
 
-        <footer class="production-footer"><div class="footer-intro"><span class="footer-logo">ScenePilot</span><p>Production intelligence for modern film workflows.</p></div><div class="footer-capabilities" aria-label="ScenePilot capabilities"><span>Screenplay analysis</span><span>Location intelligence</span><span>Production research</span></div><div class="footer-meta"><span>Built for production teams.<br>Powered by Gemini + Parallel.</span><span>© 2026 ScenePilot</span></div></footer>
+      <footer class="production-footer">
+        <div class="footer-intro">
+          <span class="footer-logo">ScenePilot</span>
+          <p>Production intelligence for modern film workflows.</p>
+        </div>
+        <div class="footer-capabilities" aria-label="ScenePilot capabilities">
+          <span>Screenplay analysis</span><span>Location intelligence</span
+          ><span>Production research</span>
+        </div>
+        <div class="footer-meta">
+          <span
+            >Built for production teams.<br />Powered by Gemini +
+            Parallel.</span
+          ><span>© 2026 ScenePilot</span>
+        </div>
+      </footer>
     </div>
 
     <script>
-        const historySearch = document.getElementById("history-search");
-        const historyEntries = document.querySelectorAll(".history-entry");
-        const noMatches = document.getElementById("no-matches");
+      const historySearch = document.getElementById('history-search');
+      const historyEntries = document.querySelectorAll('.history-entry');
+      const noMatches = document.getElementById('no-matches');
 
-        if (historySearch) {
-            historySearch.addEventListener("input", function () {
-                const query = this.value.trim().toLowerCase();
-                let matches = 0;
+      if (historySearch) {
+        historySearch.addEventListener('input', function () {
+          const query = this.value.trim().toLowerCase();
+          let matches = 0;
 
-                historyEntries.forEach(function (entry) {
-                    const isMatch = entry.dataset.filename.includes(query);
-                    entry.hidden = !isMatch;
-                    if (isMatch) matches += 1;
-                });
+          historyEntries.forEach(function (entry) {
+            const isMatch = entry.dataset.filename.includes(query);
+            entry.hidden = !isMatch;
+            if (isMatch) matches += 1;
+          });
 
-                noMatches.hidden = matches !== 0;
-            });
-        }
+          noMatches.hidden = matches !== 0;
+        });
+      }
     </script>
-</body>
+  </body>
 </html>
